@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Application Status Update - {{ job_title }} at {{ company_name }}{% endblock %}
+
+{% block content %}
+<div class="content-section">
+    <h2><i class="fas fa-bell" style="color: var(--primary-blue); margin-right: 8px;"></i>Hello {{ applicant_name }},</h2>
+    
+    <p>We have an important update regarding your application. Thank you for your patience during our review process.</p>
+</div>
+
+<div class="content-section">
+    <div class="info-card">
+        <h3><i class="fas fa-briefcase" style="color: var(--primary-blue); margin-right: 8px;"></i>Application Details</h3>
+        <div style="display: grid; gap: 12px;">
+            <p><i class="fas fa-user-tie" style="color: var(--gray-600); margin-right: 8px;"></i><strong>Position:</strong> {{ job_title }}</p>
+            <p><i class="fas fa-building" style="color: var(--gray-600); margin-right: 8px;"></i><strong>Company:</strong> {{ company_name }}</p>
+            <p><i class="fas fa-hashtag" style="color: var(--gray-600); margin-right: 8px;"></i><strong>Application ID:</strong> <code style="background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">{{ application_id }}</code></p>
+            <p><i class="fas fa-calendar" style="color: var(--gray-600); margin-right: 8px;"></i><strong>Applied:</strong> {{ application_date }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="content-section">
+    {% if status == "accepted" %}
+    <div style="background: linear-gradient(135deg, var(--secondary-green) 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0;">
+        <h3 style="color: white; margin-bottom: 12px;"><i class="fas fa-trophy" style="margin-right: 8px;"></i>🎉 Congratulations!</h3>
+        <p style="color: white; margin-bottom: 8px;">Your application has been <strong>accepted</strong>!</p>
+        <p style="color: rgba(255,255,255,0.9); font-size: 0.95rem;">We are pleased to inform you that you have been selected for this position. Our HR team will contact you soon with next steps.</p>
+    </div>
+    
+    {% elif status == "rejected" %}
+    <div style="background: var(--gray-50); border-left: 4px solid var(--gray-400); padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3><i class="fas fa-info-circle" style="color: var(--gray-600); margin-right: 8px;"></i>Application Update</h3>
+        <p>Thank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates at this time.</p>
+        <p>We encourage you to apply for other positions that match your skills and experience. Your profile remains in our talent database for future opportunities.</p>
+    </div>
+    
+    {% elif status == "interview" %}
+    <div style="background: linear-gradient(135deg, var(--secondary-orange) 0%, #d97706 100%); color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0;">
+        <h3 style="color: white; margin-bottom: 12px;"><i class="fas fa-calendar-check" style="margin-right: 8px;"></i>📅 Interview Invitation</h3>
+        <p style="color: white; margin-bottom: 8px;">Great news! We would like to invite you for an interview.</p>
+        <p style="color: rgba(255,255,255,0.9); font-size: 0.95rem;">Please check your email for interview details and scheduling information.</p>
+    </div>
+    
+    {% else %}
+    <div class="highlight">
+        <h3><i class="fas fa-sync-alt" style="color: var(--primary-blue); margin-right: 8px;"></i>Status Update</h3>
+        <p>Your application status has been updated to: <strong style="background: var(--primary-blue); color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.9rem;">{{ status|title }}</strong></p>
+        {% if message %}
+        <p style="margin-top: 16px;">{{ message }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="content-section text-center">
+    <a href="{{ dashboard_url }}" class="btn btn-primary">
+        <i class="fas fa-external-link-alt" style="margin-right: 8px;"></i>
+        View Full Application Details
+    </a>
+</div>
+
+{% if status == "accepted" %}
+<div class="content-section">
+    <div class="info-card">
+        <h3><i class="fas fa-rocket" style="color: var(--secondary-green); margin-right: 8px;"></i>What's Next?</h3>
+        <div style="display: grid; gap: 8px;">
+            <p><i class="fas fa-phone" style="color: var(--secondary-green); margin-right: 8px;"></i>Our HR team will contact you within 24-48 hours</p>
+            <p><i class="fas fa-file-contract" style="color: var(--secondary-green); margin-right: 8px;"></i>Prepare for contract discussions and onboarding</p>
+            <p><i class="fas fa-handshake" style="color: var(--secondary-green); margin-right: 8px;"></i>Welcome to the {{ company_name }} family!</p>
+        </div>
+    </div>
+</div>
+{% elif status == "interview" %}
+<div class="content-section">
+    <div class="info-card">
+        <h3><i class="fas fa-lightbulb" style="color: var(--secondary-orange); margin-right: 8px;"></i>Interview Preparation Tips</h3>
+        <div style="display: grid; gap: 8px;">
+            <p><i class="fas fa-search" style="color: var(--secondary-orange); margin-right: 8px;"></i>Research {{ company_name }}'s mission and values</p>
+            <p><i class="fas fa-list" style="color: var(--secondary-orange); margin-right: 8px;"></i>Prepare examples of your relevant experience</p>
+            <p><i class="fas fa-question" style="color: var(--secondary-orange); margin-right: 8px;"></i>Think of thoughtful questions about the role</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="content-section">
+    <p>Thank you for your continued interest in {{ company_name }}. If you have any questions, please don't hesitate to contact us at <a href="mailto:hiring@{{ company_name|lower }}.com" style="color: var(--primary-blue);">hiring@{{ company_name|lower }}.com</a></p>
+    
+    <p><strong>Best regards,<br>{{ company_name }} Hiring Team</strong></p>
+    
+    <p class="text-muted">This update was sent to {{ applicant_email }}</p>
+</div>
+{% endblock %}

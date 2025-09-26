@@ -1,0 +1,57 @@
+# FastAPI and ASGI server
+fastapi==0.95.1
+uvicorn==0.22.0
+
+# Database
+sqlalchemy==2.0.12
+alembic==1.10.4
+psycopg2-binary==2.9.6
+
+# Authentication
+python-jose==3.3.0
+passlib==1.7.4
+python-multipart==0.0.6
+
+# Email validation
+email-validator==2.0.0.post2
+
+# Environment variables
+python-dotenv==1.0.0
+
+# CORS
+# starlette is already included as a dependency of fastapi
+
+# CSV export
+pandas==2.0.1
+
+# Testing
+pytest==7.3.1
+httpx==0.24.1
+
+# Logging
+loguru==0.7.0
+
+# HTTP client for API calls
+httpx==0.24.1
+
+# JSON handling
+pyjwt==2.6.0
+
+# Payment processing
+stripe==5.4.0
+
+# Storage
+boto3==1.28.38
+google-cloud-storage==2.13.0
+
+# Templating
+jinja2==3.1.2
+
+# Scheduling
+apscheduler==3.10.1
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Circuit Breaker
+circuitbreaker==1.4.0

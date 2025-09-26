@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to iRxcruit - {{ first_name }}{% endblock %}
+
+{% block content %}
+<div class="content-section">
+    <h2><i class="fas fa-party-horn" style="color: var(--secondary-green); margin-right: 8px;"></i>Welcome to iRxcruit, {{ first_name }}!</h2>
+    
+    <p>🎉 <strong>Congratulations!</strong> Your account has been successfully created and verified. Welcome to the iRxcruit community!</p>
+    
+    <p>As a <strong>{{ user_type|title }}</strong>, you now have access to our comprehensive recruitment platform designed to connect talent with opportunity and drive career growth.</p>
+</div>
+
+<div class="content-section">
+    <div class="info-card">
+        <h3><i class="fas fa-rocket" style="color: var(--primary-blue); margin-right: 8px;"></i>What you can do now:</h3>
+        
+        {% if user_type == "talent" %}
+        <div style="display: grid; gap: 12px;">
+            <p><i class="fas fa-search" style="color: var(--secondary-green); margin-right: 8px;"></i>Browse and apply for exciting job opportunities</p>
+            <p><i class="fas fa-user-edit" style="color: var(--secondary-green); margin-right: 8px;"></i>Create and customize your professional profile</p>
+            <p><i class="fas fa-file-upload" style="color: var(--secondary-green); margin-right: 8px;"></i>Upload your resume and portfolio</p>
+            <p><i class="fas fa-bell" style="color: var(--secondary-green); margin-right: 8px;"></i>Set up job alerts for positions that match your skills</p>
+            <p><i class="fas fa-handshake" style="color: var(--secondary-green); margin-right: 8px;"></i>Connect with potential employers</p>
+        </div>
+        {% elif user_type == "employer" %}
+        <div style="display: grid; gap: 12px;">
+            <p><i class="fas fa-plus-circle" style="color: var(--primary-blue); margin-right: 8px;"></i>Post job openings and find qualified candidates</p>
+            <p><i class="fas fa-users" style="color: var(--primary-blue); margin-right: 8px;"></i>Search our talent database</p>
+            <p><i class="fas fa-building" style="color: var(--primary-blue); margin-right: 8px;"></i>Manage your company profile</p>
+            <p><i class="fas fa-clipboard-check" style="color: var(--primary-blue); margin-right: 8px;"></i>Review applications and schedule interviews</p>
+            <p><i class="fas fa-chart-line" style="color: var(--primary-blue); margin-right: 8px;"></i>Access our recruitment analytics</p>
+        </div>
+        {% elif user_type == "trainer" %}
+        <div style="display: grid; gap: 12px;">
+            <p><i class="fas fa-chalkboard-teacher" style="color: var(--secondary-orange); margin-right: 8px;"></i>Create and publish training programs</p>
+            <p><i class="fas fa-calendar-alt" style="color: var(--secondary-orange); margin-right: 8px;"></i>Manage your training schedule</p>
+            <p><i class="fas fa-network-wired" style="color: var(--secondary-orange); margin-right: 8px;"></i>Connect with learners and organizations</p>
+            <p><i class="fas fa-star" style="color: var(--secondary-orange); margin-right: 8px;"></i>Track your training impact and feedback</p>
+            <p><i class="fas fa-award" style="color: var(--secondary-orange); margin-right: 8px;"></i>Build your professional training portfolio</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="content-section text-center">
+    <a href="{{ platform_url }}" class="btn btn-success">
+        <i class="fas fa-arrow-right" style="margin-right: 8px;"></i>
+        Get Started Now
+    </a>
+</div>
+
+<div class="content-section">
+    <div class="highlight">
+        <p><i class="fas fa-lightbulb" style="color: var(--secondary-orange); margin-right: 8px;"></i><strong>Pro Tip:</strong></p>
+        <p>Complete your profile within the first 48 hours to increase your visibility and get the most out of our platform. Users with complete profiles are 3x more likely to achieve their goals!</p>
+    </div>
+</div>
+
+<div class="content-section">
+    <p>If you have any questions or need assistance getting started, our support team is here to help. Don't hesitate to reach out at <a href="mailto:support@irxcruit.com" style="color: var(--primary-blue);">support@irxcruit.com</a></p>
+    
+    <p><strong>Thank you for choosing iRxcruit.</strong> We're excited to be part of your professional journey and help you achieve your career goals!</p>
+    
+    <p class="text-muted">This welcome email was sent to {{ email }}</p>
+</div>
+{% endblock %}
