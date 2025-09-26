@@ -453,5 +453,3 @@ For support and questions:
 - Check the documentation at `/docs` endpoint
 
 ---
-
-**Built with ❤️ using FastAPI, SQLAlchemy, and modern Python practices.**
