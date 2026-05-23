@@ -47,18 +47,6 @@ async def trainer_info(db: Session = Depends(get_db)):
         "pricing": pricing_info
     }
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED)
-async def trainer_signup(trainer_data: dict = Body(...)):
-    """Create a new trainer account"""
-    # This will be implemented with database operations later
-    return {"message": "Trainer account created successfully"}
-
-@router.post("/login")
-async def trainer_login(email: str, password: str):
-    """Login for trainer accounts"""
-    # This will be implemented with authentication later
-    return {"message": "Login successful", "access_token": "dummy_token"}
-
 @router.post("/purchase", status_code=status.HTTP_201_CREATED)
 async def purchase_credits(
     package_id: int = Body(..., embed=True),

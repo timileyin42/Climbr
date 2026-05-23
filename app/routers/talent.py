@@ -17,18 +17,6 @@ from app.models.database_models import User, Talent, Job, Training, JobApplicati
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED)
-async def talent_signup(talent_data: dict = Body(...)):
-    """Create a new talent account"""
-    # This will be implemented with database operations later
-    return {"message": "Talent account created successfully"}
-
-@router.post("/login")
-async def talent_login(email: str, password: str):
-    """Login for talent accounts"""
-    # This will be implemented with authentication later
-    return {"message": "Login successful", "access_token": "dummy_token"}
-
 @router.get("/profile")
 async def get_profile(
     db: Session = Depends(get_db),
@@ -69,15 +57,6 @@ async def get_profile(
     
     return profile
 
-@router.put("/profile")
-async def update_profile(
-    profile_data: dict = Body(...),
-    db: Session = Depends(get_db),
-    current_talent: Talent = Depends(get_current_talent)
-):
-    """Update talent profile"""
-    talent_id = current_talent.id
-
 @router.get("/profile/skills", response_model=List[SkillOut])
 async def get_skills(
     db: Session = Depends(get_db),
@@ -88,18 +67,6 @@ async def get_skills(
     
     skill_entries = UserService.get_skills(db, talent_id)
     return skill_entries
-
-@router.get("/skills", response_model=List[SkillOut])
-async def get_all_skills(
-    skip: int = 0,
-    limit: int = 100,
-    category: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_talent: Talent = Depends(get_current_talent)
-):
-    """Get all available skills with optional filtering by category"""
-    skills = UserService.get_all_skills(db, skip, limit, category)
-    return skills
 
 @router.post("/profile/skills", response_model=SkillOut, status_code=status.HTTP_201_CREATED)
 async def create_skill(
