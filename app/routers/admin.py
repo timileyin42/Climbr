@@ -7,8 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.user_models import AdminOut, AdminCreate, TalentOut, EmployerOut, TrainerOut, Token
 from app.models.job_models import JobOut, JobPricingOut, JobPricingUpdate
 from app.models.training_models import TrainingOut, TrainingPricingOut, TrainingPricingUpdate
-from app.models.database_models import User, UserType, JobStatus, TrainingStatus
-from app.models.payment_models import Payment
+from app.models.database_models import User, UserType, JobStatus, TrainingStatus, Payment
 
 # Import services
 from app.services.user import UserService

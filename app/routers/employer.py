@@ -6,11 +6,11 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app.services.storage import StorageService
 from app.dependencies.auth import get_current_user, get_current_employer
-from app.services.user_service import UserService
+from app.services.user import UserService
 from app.services.payment import PaymentService
 from app.services.pricing import PricingService
 from app.services.job import JobService
-from app.models.user_models import EmployerSignup, EmployerLogin, EmployerOut
+from app.models.user_models import EmployerOut
 from app.models.database_models import User, Employer, Payment, JobPricing, Job, ApplicationStatus
 from app.models.job_models import JobCreate, JobUpdate
 

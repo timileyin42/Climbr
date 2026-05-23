@@ -144,6 +144,14 @@ class TalentProfile(BaseModel):
     languages: Optional[List[LanguageOut]] = None
     certificates: Optional[List[CertificateOut]] = None
 
+class TalentUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    date_of_birth: Optional[datetime] = None
+
 class TalentOut(TalentBase, UserOut):
     profile: Optional[TalentProfile] = None
 
