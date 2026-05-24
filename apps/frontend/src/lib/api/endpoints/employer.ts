@@ -7,7 +7,9 @@ export interface PricingPackage { id: number; plan: string; price: number; quant
 export interface EmployerInfo   { message: string; benefits: string[]; pricing: PricingPackage[] }
 export interface Applicant {
   id: number; talent_id: number; user_id: number | null; first_name: string; last_name: string
-  email: string; status: string; applied_at: string; profile: Record<string, unknown>
+  email: string; status: string; applied_at: string
+  resume_url: string | null; avatar_url: string | null
+  profile: Record<string, unknown>
 }
 export interface ApplicantsResponse {
   job_id: number; job_title: string; applications: Applicant[]

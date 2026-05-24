@@ -25,10 +25,22 @@ def _user_names(user: User) -> tuple[str, str]:
         parts = (user.employer.contact_name or "").split(" ", 1)
         return parts[0], parts[1] if len(parts) > 1 else ""
     if user.user_type == UserType.TRAINER and user.trainer:
-        return user.trainer.first_name or "", user.trainer.last_name or ""
+        parts = (user.trainer.contact_name or "").split(" ", 1)
+        return parts[0], parts[1] if len(parts) > 1 else ""
     if user.user_type == UserType.ADMIN and user.admin:
         return user.admin.first_name or "", user.admin.last_name or ""
     return "", ""
+
+
+def _profile_pic(user: User) -> str | None:
+    """Return the profile picture / logo URL for any user type."""
+    if user.user_type == UserType.TALENT and user.talent:
+        return user.talent.profile_image_url
+    if user.user_type == UserType.EMPLOYER and user.employer:
+        return user.employer.logo_url
+    if user.user_type == UserType.TRAINER and user.trainer:
+        return user.trainer.logo_url
+    return None
 
 
 def _auth_response(user: User) -> dict:

@@ -323,6 +323,8 @@ async def get_job_applicants(
                 "email": a.talent.user.email if a.talent and a.talent.user else "",
                 "status": a.status.value if hasattr(a.status, "value") else a.status,
                 "applied_at": a.created_at.isoformat() if a.created_at else None,
+                "resume_url": a.talent.resume_url if a.talent else None,
+                "avatar_url": a.talent.profile_image_url if a.talent else None,
                 "profile": {},
             }
             for a in applications

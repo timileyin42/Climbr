@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Users, MessageSquare } from 'lucide-react'
+import { ChevronLeft, Users, MessageSquare, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/feedback/Skeleton'
@@ -31,9 +31,10 @@ function ApplicantRow({ applicant, onAction, onMessage, loading }: {
     <div className="md:hidden bg-white border-2 border-[var(--color-border)] rounded-[var(--radius-lg)] p-4">
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[13px] font-[700] text-[var(--color-brand-orange)] shrink-0">
-            {initials}
-          </div>
+          {applicant.avatar_url
+            ? <img src={applicant.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+            : <div className="w-10 h-10 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[13px] font-[700] text-[var(--color-brand-orange)] shrink-0">{initials}</div>
+          }
           <div>
             <p className="text-[14px] font-[700] text-[var(--color-text-primary)]">{applicant.first_name} {applicant.last_name}</p>
             <p className="text-[12px] text-[var(--color-text-tertiary)]">{applicant.email}</p>
@@ -49,6 +50,13 @@ function ApplicantRow({ applicant, onAction, onMessage, loading }: {
           onClick={() => onAction(applicant.id, 'shortlist')} disabled={loading}>Shortlist</Button>
         <Button size="sm" variant="outline"
           onClick={() => onAction(applicant.id, 'reject')} disabled={loading}>Reject</Button>
+        {applicant.resume_url && (
+          <Button size="sm" variant="outline" asChild>
+            <a href={applicant.resume_url} target="_blank" rel="noreferrer">
+              <Download className="w-3.5 h-3.5 mr-1" />CV
+            </a>
+          </Button>
+        )}
         {applicant.user_id && (
           <Button size="sm" variant="outline"
             onClick={() => onMessage(applicant.user_id!, `${applicant.first_name} ${applicant.last_name}`)}>
@@ -125,9 +133,10 @@ export function Component() {
                   <tr key={a.id} className={cn('hover:bg-[var(--color-bg-secondary)] transition-colors', i < applicants.length - 1 && 'border-b border-[var(--color-border)]')}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[12px] font-[700] text-[var(--color-brand-orange)] shrink-0">
-                          {`${a.first_name[0] ?? '?'}${a.last_name[0] ?? '?'}`}
-                        </div>
+                        {a.avatar_url
+                          ? <img src={a.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                          : <div className="w-9 h-9 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[12px] font-[700] text-[var(--color-brand-orange)] shrink-0">{`${a.first_name[0] ?? '?'}${a.last_name[0] ?? '?'}`}</div>
+                        }
                         <p className="text-[14px] font-[600] text-[var(--color-text-primary)]">{a.first_name} {a.last_name}</p>
                       </div>
                     </td>
@@ -142,6 +151,13 @@ export function Component() {
                           onClick={() => act(a.id, 'shortlist')} disabled={action.isPending}>Shortlist</Button>
                         <Button size="sm" variant="outline"
                           onClick={() => act(a.id, 'reject')} disabled={action.isPending}>Reject</Button>
+                        {a.resume_url && (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={a.resume_url} target="_blank" rel="noreferrer">
+                              <Download className="w-3.5 h-3.5 mr-1" />CV
+                            </a>
+                          </Button>
+                        )}
                         {a.user_id && (
                           <Button size="sm" variant="outline" disabled={startConv.isPending}
                             onClick={() => message(a.user_id!, `${a.first_name} ${a.last_name}`)}>
