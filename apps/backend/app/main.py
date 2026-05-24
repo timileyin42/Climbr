@@ -24,7 +24,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 app = FastAPI(
     title="Climbr API",
     description="API for Climbr - Career Platform connecting young African talent with job opportunities and training programs",
-    version="1.0.0",
+    version="1.0.1",
 )
 
 app.state.limiter = limiter
