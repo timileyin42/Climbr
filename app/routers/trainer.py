@@ -206,25 +206,8 @@ async def upload_training_image(
     current_trainer = Depends(get_current_trainer)
 ):
     """Upload an image for a training posting"""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/svg+xml"]
-    
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, GIF, and SVG images are allowed"
-        )
-    
-    # Check if user is a trainer
-    if current_trainer.user.user_type.value != "trainer":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only trainers can upload training images"
-        )
-    
-    # Upload file to S3
     folder = f"trainings/{training_id}"
-    file_url = await StorageService.upload_file(file, folder)
+    file_url = await StorageService.upload_image(file, folder)
     
     if not file_url:
         raise HTTPException(

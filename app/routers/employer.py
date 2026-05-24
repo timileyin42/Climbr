@@ -206,25 +206,8 @@ async def upload_job_image(
     current_employer = Depends(get_current_employer)
 ):
     """Upload an image for a job posting"""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/svg+xml"]
-    
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, GIF, and SVG images are allowed"
-        )
-    
-    # Check if user is an employer
-    if current_employer.user.user_type.value != "employer":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only employer users can upload job images"
-        )
-
-    # Upload file to S3
     folder = f"jobs/{job_id}"
-    file_url = await StorageService.upload_file(file, folder)
+    file_url = await StorageService.upload_image(file, folder)
 
     if not file_url:
         raise HTTPException(

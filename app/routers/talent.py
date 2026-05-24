@@ -599,22 +599,9 @@ async def upload_resume(
     db: Session = Depends(get_db),
     current_talent: Talent = Depends(get_current_talent)
 ):
-    """Upload a resume file to S3 bucket"""
-    # Validate file type
-    allowed_types = ["application/pdf", "application/msword", 
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
-    
-    if resume.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF and Word documents are allowed"
-        )
-    
-    # No need to check user type as get_current_talent already ensures this
-    
-    # Upload file to S3
+    """Upload a resume file to R2 bucket"""
     folder = f"resumes/{current_talent.id}"
-    file_url = await StorageService.upload_file(resume, folder)
+    file_url = await StorageService.upload_document(resume, folder)
     
     if not file_url:
         raise HTTPException(
@@ -637,31 +624,16 @@ async def upload_certificate_file(
     db: Session = Depends(get_db),
     current_talent: Talent = Depends(get_current_talent)
 ):
-    """Upload a certificate file to S3 bucket"""
-    # Validate file type
-    allowed_types = ["application/pdf", "application/msword", 
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "image/jpeg", "image/png", "image/jpg"]
-    
-    if certificate_file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF, Word documents, and images (JPEG, PNG) are allowed"
-        )
-    
-    # No need to check user type as get_current_talent already ensures this
-    
-    # Get the certificate to verify it belongs to the user
+    """Upload a certificate file to R2 bucket"""
     talent_id = current_talent.id
     certificate = UserService.get_certificate_by_id(db, certificate_id, talent_id)
-    
+
     if not certificate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Certificate not found"
         )
-    
-    # Upload file to S3
+
     folder = f"certificates/{talent_id}/{certificate_id}"
     file_url = await StorageService.upload_file(certificate_file, folder)
     
@@ -686,73 +658,29 @@ async def upload_profile_image(
     db: Session = Depends(get_db),
     current_talent: Talent = Depends(get_current_talent)
 ):
-    """Upload a profile image to S3 bucket"""
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
-    
-    if profile_image.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, and WebP images are allowed"
-        )
-    
-    # Validate file size (max 5MB)
-    max_size = 5 * 1024 * 1024  # 5MB in bytes
-    file_content = await profile_image.read()
-    if len(file_content) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size must be less than 5MB"
-        )
-    
-    # Reset file pointer
-    await profile_image.seek(0)
-    
+    """Upload a profile image to R2 bucket"""
     talent_id = current_talent.id
-    
-    try:
-        # Generate unique filename
-        import uuid
-        file_extension = profile_image.filename.split('.')[-1] if '.' in profile_image.filename else 'jpg'
-        unique_filename = f"profile_images/{talent_id}_{uuid.uuid4().hex}.{file_extension}"
-        
-        # Upload to S3
-        file_url = await StorageService.upload_file(
-            file=profile_image,
-            filename=unique_filename,
-            content_type=profile_image.content_type
-        )
-        
-        if not file_url:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to upload profile image"
-            )
-        
-        # Update talent profile with image URL
-        updated_talent = UserService.update_talent(db, talent_id, {"profile_image_url": file_url})
-        
-        if not updated_talent:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Talent not found"
-            )
-        
-        return {
-            "message": "Profile image uploaded successfully",
-            "image_url": file_url,
-            "talent": {
-                "id": updated_talent.id,
-                "profile_image_url": updated_talent.profile_image_url
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Error uploading profile image: {str(e)}")
+    folder = f"profile_images/{talent_id}"
+    file_url = await StorageService.upload_image(profile_image, folder)
+
+    if not file_url:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload profile image"
+            detail="Failed to upload profile image",
         )
+
+    updated_talent = UserService.update_talent(db, talent_id, {"profile_image_url": file_url})
+    if not updated_talent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Talent not found")
+
+    return {
+        "message": "Profile image uploaded successfully",
+        "image_url": file_url,
+        "talent": {
+            "id": updated_talent.id,
+            "profile_image_url": updated_talent.profile_image_url,
+        },
+    }
 
 @router.delete("/profile/image")
 async def delete_profile_image(
