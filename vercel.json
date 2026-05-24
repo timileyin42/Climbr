@@ -1,0 +1,9 @@
+{
+  "buildCommand": "pnpm --filter @climbr/frontend build",
+  "outputDirectory": "apps/frontend/dist",
+  "installCommand": "pnpm install",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/((?!assets|favicon|icons).*)", "destination": "/index.html" }
+  ]
+}
