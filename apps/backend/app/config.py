@@ -1,7 +1,6 @@
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Literal, Optional
-import os
+from typing import List, Optional
 
 
 class Settings(BaseSettings):
@@ -13,56 +12,56 @@ class Settings(BaseSettings):
     )
 
     # ── Environment ────────────────────────────────────────────────────────────
-    ENVIRONMENT: Literal["development", "staging", "production"] = "development"
+    ENVIRONMENT: str
 
     # ── Database ───────────────────────────────────────────────────────────────
-    DATABASE_URL: str  # no default — fails fast if missing
+    DATABASE_URL: str
 
     # ── JWT ────────────────────────────────────────────────────────────────────
-    JWT_SECRET_KEY: str  # no default
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # ── CORS ───────────────────────────────────────────────────────────────────
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
+    CORS_ORIGINS: str
 
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     # ── Email (Resend) ─────────────────────────────────────────────────────────
-    RESEND_API_KEY: Optional[str] = None
-    FROM_EMAIL: str = "no-reply@climbr.com"
-    FROM_NAME: str = "Climbr Team"
-    ADMIN_EMAIL: Optional[str] = None
+    RESEND_API_KEY: str
+    FROM_EMAIL: str
+    FROM_NAME: str
+    ADMIN_EMAIL: str
 
     # ── Cloudflare R2 ─────────────────────────────────────────────────────────
-    R2_ACCOUNT_ID: Optional[str] = None
-    R2_ACCESS_KEY_ID: Optional[str] = None
-    R2_SECRET_ACCESS_KEY: Optional[str] = None
-    R2_BUCKET_NAME: Optional[str] = None
-    R2_PUBLIC_URL: Optional[str] = None
+    R2_ACCOUNT_ID: str
+    R2_ACCESS_KEY_ID: str
+    R2_SECRET_ACCESS_KEY: str
+    R2_BUCKET_NAME: str
+    R2_PUBLIC_URL: str
 
     # ── Paystack ───────────────────────────────────────────────────────────────
-    PAYSTACK_SECRET_KEY: Optional[str] = None
+    PAYSTACK_SECRET_KEY: str
     PAYSTACK_PUBLIC_KEY: Optional[str] = None
-    PAYSTACK_WEBHOOK_SECRET: Optional[str] = None
+    PAYSTACK_WEBHOOK_SECRET: str
 
     # ── Firebase ───────────────────────────────────────────────────────────────
-    FIREBASE_PROJECT_ID: Optional[str] = None
-    FIREBASE_CREDENTIALS_JSON: Optional[str] = None
+    FIREBASE_PROJECT_ID: str
+    FIREBASE_CREDENTIALS_JSON: str
 
     # ── Redis / Celery ────────────────────────────────────────────────────────
     REDIS_URL: Optional[str] = None
 
     # ── Admin bootstrap ────────────────────────────────────────────────────────
-    ADMIN_PASSWORD: Optional[str] = None  # required in production (see validator)
-    ADMIN_FIRST_NAME: str = "Admin"
-    ADMIN_LAST_NAME: str = "User"
+    ADMIN_PASSWORD: str
+    ADMIN_FIRST_NAME: str
+    ADMIN_LAST_NAME: str
 
     # ── App ────────────────────────────────────────────────────────────────────
-    APP_URL: str = "http://localhost:8000"
-    FRONTEND_URL: str = "http://localhost:3000"
+    APP_URL: str
+    FRONTEND_URL: str
 
     # ── Validators ─────────────────────────────────────────────────────────────
 
@@ -72,47 +71,24 @@ class Settings(BaseSettings):
         weak = {"your-secret-key", "secret-key", "secret", "changeme", "password"}
         if v.lower() in weak:
             raise ValueError(
-                "JWT_SECRET_KEY is set to an example/weak value. "
-                "Generate a secure key: python -c \"import secrets; print(secrets.token_hex(32))\""
+                "JWT_SECRET_KEY is set to a weak example value. "
+                "Generate one: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
         if len(v) < 32:
             raise ValueError("JWT_SECRET_KEY must be at least 32 characters long.")
         return v
 
     @model_validator(mode="after")
-    def validate_production_vars(self) -> "Settings":
-        if self.ENVIRONMENT == "production":
-            required = {
-                "RESEND_API_KEY": self.RESEND_API_KEY,
-                "ADMIN_EMAIL": self.ADMIN_EMAIL,
-                "ADMIN_PASSWORD": self.ADMIN_PASSWORD,
-                "R2_ACCOUNT_ID": self.R2_ACCOUNT_ID,
-                "R2_ACCESS_KEY_ID": self.R2_ACCESS_KEY_ID,
-                "R2_SECRET_ACCESS_KEY": self.R2_SECRET_ACCESS_KEY,
-                "R2_BUCKET_NAME": self.R2_BUCKET_NAME,
-                "R2_PUBLIC_URL": self.R2_PUBLIC_URL,
-                "PAYSTACK_SECRET_KEY": self.PAYSTACK_SECRET_KEY,
-                "PAYSTACK_WEBHOOK_SECRET": self.PAYSTACK_WEBHOOK_SECRET,
-                "FIREBASE_PROJECT_ID": self.FIREBASE_PROJECT_ID,
-                "FIREBASE_CREDENTIALS_JSON": self.FIREBASE_CREDENTIALS_JSON,
-            }
-            missing = [k for k, v in required.items() if not v]
-            if missing:
-                raise ValueError(
-                    f"Missing required environment variables for production: {', '.join(missing)}"
-                )
-
-            if "*" in self.CORS_ORIGINS:
-                raise ValueError(
-                    "CORS_ORIGINS cannot contain '*' in production. "
-                    "Set explicit origins e.g. CORS_ORIGINS=https://app.climbr.com"
-                )
-
+    def validate_cors(self) -> "Settings":
+        if "*" in self.CORS_ORIGINS:
+            raise ValueError(
+                "CORS_ORIGINS cannot contain '*'. "
+                "Set explicit origins e.g. CORS_ORIGINS=https://app.climbr.com,http://localhost:5173"
+            )
         return self
 
 
 def _load_settings() -> Settings:
-    """Load settings, providing a helpful error if required vars are missing."""
     try:
         return Settings()
     except Exception as e:
