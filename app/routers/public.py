@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
@@ -12,7 +12,7 @@ load_dotenv()
 from app.services.job import JobService
 from app.services.training import TrainingService
 from app.services.contact import ContactService
-from app.services.email import EmailService
+
 from app.models.job_models import JobOut, JobListing
 from app.models.training_models import TrainingOut, TrainingListing
 from app.models.database_models import Job, Training, JobApplication, TrainingApplication
@@ -252,18 +252,15 @@ async def get_recommended_trainings(
 @router.post("/contact")
 async def contact_form(
     contact_data: ContactFormRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Contact form submission"""
     try:
-        # Create contact submission in database and send notification email
         submission = await ContactService.create_contact_submission(
             db=db,
             name=contact_data.name,
             email=contact_data.email,
             message=contact_data.message,
-            background_tasks=background_tasks
         )
         
         return {

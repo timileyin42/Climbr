@@ -65,8 +65,7 @@ class VerificationService:
                 return False, f"Failed to create verification token: {token}"
 
             verification_link = f"{base_url}/verify-email?token={token}"
-            email_service = EmailService()
-            await email_service.send_verification_email(user.email, verification_link)
+            await EmailService.send_verification_email(user.email, verification_link)
             return True, "Verification email sent successfully"
         except Exception as e:
             logger.error(f"Error sending verification email: {e}")
@@ -110,8 +109,7 @@ class VerificationService:
                 return False, f"Failed to create password reset token: {token}"
 
             reset_link = f"{base_url}/reset-password?token={token}"
-            email_service = EmailService()
-            await email_service.send_password_reset_email(user.email, reset_link)
+            await EmailService.send_password_reset_email(user.email, reset_link)
             return True, "Password reset email sent successfully"
         except Exception as e:
             logger.error(f"Error sending password reset email: {e}")

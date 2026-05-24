@@ -6,7 +6,6 @@ from app.config import settings
 from app.routers import talent, employer, trainer, admin, public, auth
 from app.setup import setup_directories
 from app.services.archiving import ArchivingService
-from app.services.async_email import async_email_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,8 +52,7 @@ async def shutdown_event():
     if hasattr(app.state, "scheduler"):
         app.state.scheduler.shutdown()
     
-    # Shut down async email service
-    await async_email_service.shutdown()
+
 
 
 @app.get("/", tags=["root"])

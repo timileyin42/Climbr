@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from fastapi import BackgroundTasks
-import os
+import asyncio
 
 from app.models.database_models import ContactSubmission
 from app.services.email import EmailService
@@ -15,26 +14,20 @@ class ContactService:
         name: str,
         email: str,
         message: str,
-        background_tasks: BackgroundTasks = None,
+        background_tasks=None,  # kept for API compatibility but unused
     ) -> ContactSubmission:
         repo = ContactRepository(db)
         contact_submission = repo.create(name=name, email=email, message=message)
 
-        if background_tasks:
-            admin_email = os.getenv("ADMIN_EMAIL", "admin@climbr.com")
-            await EmailService.send_email(
-                background_tasks=background_tasks,
-                to_email=admin_email,
-                subject=f"New Contact Form Submission from {name}",
-                template_name="contact_notification.html",
-                template_data={
-                    "name": name,
-                    "email": email,
-                    "message": message,
-                    "submission_id": contact_submission.id,
-                    "submitted_at": contact_submission.created_at,
-                },
+        asyncio.create_task(
+            EmailService.send_contact_notification(
+                name=name,
+                email=email,
+                message=message,
+                submission_id=contact_submission.id,
+                submitted_at=contact_submission.created_at,
             )
+        )
 
         return contact_submission
 
