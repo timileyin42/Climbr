@@ -15,6 +15,7 @@ from app.services.contact import ContactService
 from app.services.email import EmailService
 from app.models.job_models import JobOut, JobListing
 from app.models.training_models import TrainingOut, TrainingListing
+from app.models.database_models import Job, Training, JobApplication, TrainingApplication
 
 router = APIRouter()
 
@@ -191,20 +192,17 @@ async def get_recommended_jobs(
 ):
     """Get recommended jobs based on talent profile or general recommendations"""
     try:
+        filters = {"sort_by": "date", "status": "active"}
         if talent_id:
-            # Get personalized recommendations based on talent skills and preferences
-            # This could be enhanced with ML algorithms in the future
-            filters = {
-                "sort_by": "date",
-                "status": "active"  # Only show active jobs
-            }
-            jobs = JobService.get_jobs(db, skip=0, limit=limit, filters=filters)
+            # Exclude jobs the talent has already applied to
+            applied_job_ids = db.query(JobApplication.job_id).filter(
+                JobApplication.talent_id == talent_id
+            ).all()
+            applied_ids = [a[0] for a in applied_job_ids]
+            # Fetch extra to account for filtering, then trim
+            candidates = JobService.get_jobs(db, skip=0, limit=limit + len(applied_ids) + 10, filters=filters)
+            jobs = [j for j in candidates if j.id not in applied_ids][:limit]
         else:
-            # Return general popular/recent active jobs
-            filters = {
-                "sort_by": "date",
-                "status": "active"
-            }
             jobs = JobService.get_jobs(db, skip=0, limit=limit, filters=filters)
         
         return {
@@ -227,20 +225,16 @@ async def get_recommended_trainings(
 ):
     """Get recommended trainings based on talent profile or general recommendations"""
     try:
+        filters = {"sort_by": "date", "status": "active"}
         if talent_id:
-            # Get personalized recommendations based on talent skills and preferences
-            # This could be enhanced with ML algorithms in the future
-            filters = {
-                "sort_by": "date",
-                "status": "active"  # Only show active trainings
-            }
-            trainings = TrainingService.get_trainings(db, skip=0, limit=limit, filters=filters)
+            # Exclude trainings the talent has already applied to
+            applied_training_ids = db.query(TrainingApplication.training_id).filter(
+                TrainingApplication.talent_id == talent_id
+            ).all()
+            applied_ids = [a[0] for a in applied_training_ids]
+            candidates = TrainingService.get_trainings(db, skip=0, limit=limit + len(applied_ids) + 10, filters=filters)
+            trainings = [t for t in candidates if t.id not in applied_ids][:limit]
         else:
-            # Return general popular/recent active trainings
-            filters = {
-                "sort_by": "date",
-                "status": "active"
-            }
             trainings = TrainingService.get_trainings(db, skip=0, limit=limit, filters=filters)
         
         return {

@@ -216,24 +216,24 @@ async def upload_job_image(
         )
     
     # Check if user is an employer
-    if current_user.user_type.value != "employer":
+    if current_employer.user.user_type.value != "employer":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only employer users can upload job images"
         )
-    
+
     # Upload file to S3
     folder = f"jobs/{job_id}"
     file_url = await StorageService.upload_file(file, folder)
-    
+
     if not file_url:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to upload image. Please try again later."
         )
-    
+
     # Update the job
-    job = db.query(Job).filter(Job.id == job_id, Job.employer_id == current_user.id).first()
+    job = db.query(Job).filter(Job.id == job_id, Job.employer_id == current_employer.id).first()
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -366,10 +366,10 @@ async def accept_applicant(
             raise HTTPException(status_code=403, detail="Access denied: Job does not belong to you")
         
         # Update application status to accepted
-        updated_application = JobService.update_application_status(db, applicant_id, ApplicationStatus.SHORTLISTED)
+        updated_application = JobService.update_application_status(db, applicant_id, ApplicationStatus.ACCEPTED)
         if not updated_application:
             raise HTTPException(status_code=404, detail="Application not found")
-        
+
         return {
             "message": "Applicant accepted successfully",
             "job_id": job_id,
@@ -381,6 +381,38 @@ async def accept_applicant(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to accept applicant: {str(e)}")
+
+@router.post("/jobs/{job_id}/applicants/{applicant_id}/shortlist")
+async def shortlist_applicant(
+    job_id: int,
+    applicant_id: int,
+    db: Session = Depends(get_db),
+    current_employer: Employer = Depends(get_current_employer)
+):
+    """Shortlist an applicant for a job"""
+    try:
+        job = JobService.get_job_by_id_simple(db, job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+        if job.employer_id != current_employer.id:
+            raise HTTPException(status_code=403, detail="Access denied: Job does not belong to you")
+
+        updated_application = JobService.update_application_status(db, applicant_id, ApplicationStatus.SHORTLISTED)
+        if not updated_application:
+            raise HTTPException(status_code=404, detail="Application not found")
+
+        return {
+            "message": "Applicant shortlisted successfully",
+            "job_id": job_id,
+            "applicant_id": applicant_id,
+            "status": "shortlisted"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to shortlist applicant: {str(e)}")
 
 @router.post("/jobs/{job_id}/applicants/{applicant_id}/reject")
 async def reject_applicant(
@@ -438,14 +470,14 @@ async def renew_job(
         
         # Deduct credit and extend job expiry
         current_employer.job_credits -= 1
-        job.expires_at = datetime.utcnow() + timedelta(days=30)
-        
+        job.expiry_date = datetime.utcnow() + timedelta(days=30)
+
         db.commit()
-        
+
         return {
             "message": "Job renewed successfully",
             "job_id": job_id,
-            "new_expiry_date": job.expires_at.isoformat(),
+            "new_expiry_date": job.expiry_date.isoformat(),
             "remaining_credits": current_employer.job_credits
         }
     except HTTPException:

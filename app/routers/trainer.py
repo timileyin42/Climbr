@@ -367,10 +367,10 @@ async def accept_applicant(
             raise HTTPException(status_code=403, detail="Access denied: Training does not belong to you")
         
         # Update application status to accepted
-        updated_application = TrainingService.update_application_status(db, applicant_id, ApplicationStatus.SHORTLISTED)
+        updated_application = TrainingService.update_application_status(db, applicant_id, ApplicationStatus.ACCEPTED)
         if not updated_application:
             raise HTTPException(status_code=404, detail="Application not found")
-        
+
         return {
             "message": "Applicant accepted successfully",
             "training_id": training_id,
@@ -382,6 +382,38 @@ async def accept_applicant(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to accept applicant: {str(e)}")
+
+@router.post("/trainings/{training_id}/applicants/{applicant_id}/shortlist")
+async def shortlist_applicant(
+    training_id: int,
+    applicant_id: int,
+    db: Session = Depends(get_db),
+    current_trainer: Trainer = Depends(get_current_trainer)
+):
+    """Shortlist an applicant for a training"""
+    try:
+        training = TrainingService.get_training_by_id_simple(db, training_id)
+        if not training:
+            raise HTTPException(status_code=404, detail="Training not found")
+
+        if training.trainer_id != current_trainer.id:
+            raise HTTPException(status_code=403, detail="Access denied: Training does not belong to you")
+
+        updated_application = TrainingService.update_application_status(db, applicant_id, ApplicationStatus.SHORTLISTED)
+        if not updated_application:
+            raise HTTPException(status_code=404, detail="Application not found")
+
+        return {
+            "message": "Applicant shortlisted successfully",
+            "training_id": training_id,
+            "applicant_id": applicant_id,
+            "status": "shortlisted"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to shortlist applicant: {str(e)}")
 
 @router.post("/trainings/{training_id}/applicants/{applicant_id}/reject")
 async def reject_applicant(
@@ -439,14 +471,14 @@ async def renew_training(
         
         # Deduct credit and extend training expiry
         current_trainer.training_credits -= 1
-        training.expires_at = datetime.utcnow() + timedelta(days=30)
-        
+        training.expiry_date = datetime.utcnow() + timedelta(days=30)
+
         db.commit()
-        
+
         return {
             "message": "Training renewed successfully",
             "training_id": training_id,
-            "new_expiry_date": training.expires_at.isoformat(),
+            "new_expiry_date": training.expiry_date.isoformat(),
             "remaining_credits": current_trainer.training_credits
         }
     except HTTPException:

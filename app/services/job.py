@@ -129,6 +129,14 @@ class JobService:
         return repo.archive_expired()
 
     @staticmethod
+    def update_job_status(db: Session, job_id: int, status) -> Optional[Job]:
+        repo = JobRepository(db)
+        job = repo.get_by_id(job_id)
+        if not job:
+            return None
+        return repo.update(job, status=status)
+
+    @staticmethod
     def get_job_stats(db: Session) -> dict:
         repo = JobRepository(db)
         return repo.get_stats()

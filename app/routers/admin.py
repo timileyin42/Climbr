@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 # Import models
 from app.models.user_models import AdminOut, AdminCreate, TalentOut, EmployerOut, TrainerOut, Token
 from app.models.job_models import JobOut, JobPricingOut, JobPricingUpdate
 from app.models.training_models import TrainingOut, TrainingPricingOut, TrainingPricingUpdate
-from app.models.database_models import User, UserType, JobStatus, TrainingStatus, Payment
+from app.models.database_models import User, UserType, JobStatus, TrainingStatus, Payment, Talent, Employer, Trainer
 
 # Import services
 from app.services.user import UserService
@@ -154,8 +156,11 @@ async def dashboard_overview(
         total_active_trainings = TrainingService.get_trainings_count(db, {"status": TrainingStatus.ACTIVE})
         total_inactive_trainings = TrainingService.get_trainings_count(db, {"status": TrainingStatus.ARCHIVED})
         
-        # Calculate total revenue (placeholder - would need payment records)
-        total_revenue = 0  # TODO: Implement revenue calculation from payment records
+        # Calculate total revenue from successful payments
+        from app.repositories.payment_repository import PaymentRepository
+        payment_repo = PaymentRepository(db)
+        successful = payment_repo.get_all(skip=0, limit=999999, filters={"status": "success"})
+        total_revenue = sum(p.amount for p in successful)
         
         return {
             "total_talents": total_talents,
@@ -200,8 +205,8 @@ async def get_all_talents(
         
         if name:
             talents = talents.join(User.talent).filter(
-                db.text("talents.first_name ILIKE :name OR talents.last_name ILIKE :name")
-            ).params(name=f"%{name}%")
+                or_(Talent.first_name.ilike(f"%{name}%"), Talent.last_name.ilike(f"%{name}%"))
+            )
         
         if email:
             talents = talents.filter(User.email.ilike(f"%{email}%"))
@@ -296,16 +301,16 @@ async def get_all_employers(
         
         if name:
             employers = employers.join(User.employer).filter(
-                db.text("employers.company_name ILIKE :name")
-            ).params(name=f"%{name}%")
-        
+                Employer.company_name.ilike(f"%{name}%")
+            )
+
         if email:
             employers = employers.filter(User.email.ilike(f"%{email}%"))
-        
+
         if industry:
             employers = employers.join(User.employer).filter(
-                db.text("employers.industry ILIKE :industry")
-            ).params(industry=f"%{industry}%")
+                Employer.industry.ilike(f"%{industry}%")
+            )
         
         return employers.offset(skip).limit(limit).all()
         
@@ -343,13 +348,13 @@ async def create_employer(
                 detail="User with this email already exists"
             )
         
-        # Create employer account
-        employer_data["user_type"] = UserType.EMPLOYER
-        employer_data["is_verified"] = True  # Admin-created accounts are pre-verified
-        
-        user = AuthService.create_user(db, employer_data)
-        
-        return {"message": "Employer account created successfully", "user_id": user.id}
+        # Create employer account via AuthService
+        employer_profile_data = {k: v for k, v in employer_data.items() if k not in ("email", "password")}
+        employer_profile_data["is_verified"] = True  # Admin-created accounts are pre-verified
+
+        employer = AuthService.create_employer(db, email=email, password=password, employer_data=employer_profile_data)
+
+        return {"message": "Employer account created successfully", "user_id": employer.user_id}
         
     except HTTPException:
         raise
@@ -441,16 +446,16 @@ async def get_all_trainers(
         
         if name:
             trainers = trainers.join(User.trainer).filter(
-                db.text("trainers.first_name ILIKE :name OR trainers.last_name ILIKE :name")
-            ).params(name=f"%{name}%")
-        
+                or_(Trainer.provider_name.ilike(f"%{name}%"), Trainer.contact_name.ilike(f"%{name}%"))
+            )
+
         if email:
             trainers = trainers.filter(User.email.ilike(f"%{email}%"))
-        
+
         if industry:
             trainers = trainers.join(User.trainer).filter(
-                db.text("trainers.industry ILIKE :industry")
-            ).params(industry=f"%{industry}%")
+                Trainer.industry.ilike(f"%{industry}%")
+            )
         
         return trainers.offset(skip).limit(limit).all()
         
@@ -489,13 +494,13 @@ async def create_trainer(
                 detail="User with this email already exists"
             )
         
-        # Create trainer account
-        trainer_data["user_type"] = UserType.TRAINER
-        trainer_data["is_verified"] = True  # Admin-created accounts are pre-verified
-        
-        user = AuthService.create_user(db, trainer_data)
-        
-        return {"message": "Trainer account created successfully", "user_id": user.id}
+        # Create trainer account via AuthService
+        trainer_profile_data = {k: v for k, v in trainer_data.items() if k not in ("email", "password")}
+        trainer_profile_data["is_verified"] = True  # Admin-created accounts are pre-verified
+
+        trainer = AuthService.create_trainer(db, email=email, password=password, trainer_data=trainer_profile_data)
+
+        return {"message": "Trainer account created successfully", "user_id": trainer.user_id}
         
     except HTTPException:
         raise
@@ -820,8 +825,9 @@ async def get_all_payments(
         )
 
 # Pricing Management
-@router.put("/pricing/jobs")
+@router.put("/pricing/jobs/{pricing_id}")
 async def update_job_pricing(
+    pricing_id: int,
     pricing_data: JobPricingUpdate,
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
@@ -831,8 +837,8 @@ async def update_job_pricing(
         # Update job pricing using PricingService
         updated_pricing = PricingService.update_job_pricing(
             db,
-            pricing_data.package_id,
-            pricing_data.dict(exclude={"package_id"})
+            pricing_id,
+            pricing_data.dict(exclude_unset=True)
         )
         
         if not updated_pricing:
@@ -898,7 +904,7 @@ async def update_training_pricing(
 # Reports
 @router.get("/reports/talents")
 async def export_talents_report(
-    format: str = Query("csv", regex="^(csv|excel|pdf)$"),
+    format: str = Query("csv", pattern="^(csv|excel|pdf)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_admin: User = Depends(get_current_admin),
@@ -906,16 +912,9 @@ async def export_talents_report(
 ):
     """Export talents report"""
     try:
-        # Generate talents report using ReportingService
-        report_data = ReportingService.generate_talents_report(
-            db, 
-            format=format,
-            start_date=start_date,
-            end_date=end_date
+        return ReportingService.generate_talents_report(
+            db, format=format, start_date=start_date, end_date=end_date
         )
-        
-        return {"message": "Talents report exported", "report": report_data}
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -924,7 +923,7 @@ async def export_talents_report(
 
 @router.get("/reports/employers")
 async def export_employers_report(
-    format: str = Query("csv", regex="^(csv|excel|pdf)$"),
+    format: str = Query("csv", pattern="^(csv|excel|pdf)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_admin: User = Depends(get_current_admin),
@@ -932,16 +931,9 @@ async def export_employers_report(
 ):
     """Export employers report"""
     try:
-        # Generate employers report using ReportingService
-        report_data = ReportingService.generate_employers_report(
-            db,
-            format=format,
-            start_date=start_date,
-            end_date=end_date
+        return ReportingService.generate_employers_report(
+            db, format=format, start_date=start_date, end_date=end_date
         )
-        
-        return {"message": "Employers report exported", "report": report_data}
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -950,7 +942,7 @@ async def export_employers_report(
 
 @router.get("/reports/trainers")
 async def export_trainers_report(
-    format: str = Query("csv", regex="^(csv|excel|pdf)$"),
+    format: str = Query("csv", pattern="^(csv|excel|pdf)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_admin: User = Depends(get_current_admin),
@@ -958,16 +950,9 @@ async def export_trainers_report(
 ):
     """Export trainers report"""
     try:
-        # Generate trainers report using ReportingService
-        report_data = ReportingService.generate_trainers_report(
-            db,
-            format=format,
-            start_date=start_date,
-            end_date=end_date
+        return ReportingService.generate_trainers_report(
+            db, format=format, start_date=start_date, end_date=end_date
         )
-        
-        return {"message": "Trainers report exported", "report": report_data}
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -976,7 +961,7 @@ async def export_trainers_report(
 
 @router.get("/reports/jobs")
 async def export_jobs_report(
-    format: str = Query("csv", regex="^(csv|excel|pdf)$"),
+    format: str = Query("csv", pattern="^(csv|excel|pdf)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_admin: User = Depends(get_current_admin),
@@ -984,16 +969,9 @@ async def export_jobs_report(
 ):
     """Export jobs report"""
     try:
-        # Generate jobs report using ReportingService
-        report_data = ReportingService.generate_jobs_report(
-            db,
-            format=format,
-            start_date=start_date,
-            end_date=end_date
+        return ReportingService.generate_jobs_report(
+            db, format=format, start_date=start_date, end_date=end_date
         )
-        
-        return {"message": "Jobs report exported", "report": report_data}
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1002,7 +980,7 @@ async def export_jobs_report(
 
 @router.get("/reports/trainings")
 async def export_trainings_report(
-    format: str = Query("csv", regex="^(csv|excel|pdf)$"),
+    format: str = Query("csv", pattern="^(csv|excel|pdf)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_admin: User = Depends(get_current_admin),
@@ -1010,16 +988,9 @@ async def export_trainings_report(
 ):
     """Export trainings report"""
     try:
-        # Generate trainings report using ReportingService
-        report_data = ReportingService.generate_trainings_report(
-            db,
-            format=format,
-            start_date=start_date,
-            end_date=end_date
+        return ReportingService.generate_trainings_report(
+            db, format=format, start_date=start_date, end_date=end_date
         )
-        
-        return {"message": "Trainings report exported", "report": report_data}
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1028,7 +999,7 @@ async def export_trainings_report(
 
 @router.get("/reports/payments")
 async def export_payments_report(
-    format: str = Query("csv", regex="^(csv|excel|pdf)$"),
+    format: str = Query("csv", pattern="^(csv|excel|pdf)$"),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     current_admin: User = Depends(get_current_admin),
@@ -1036,16 +1007,9 @@ async def export_payments_report(
 ):
     """Export payments report"""
     try:
-        # Generate payments report using ReportingService
-        report_data = ReportingService.generate_payments_report(
-            db,
-            format=format,
-            start_date=start_date,
-            end_date=end_date
+        return ReportingService.generate_payments_report(
+            db, format=format, start_date=start_date, end_date=end_date
         )
-        
-        return {"message": "Payments report exported", "report": report_data}
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

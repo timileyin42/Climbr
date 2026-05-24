@@ -134,6 +134,14 @@ class TrainingService:
         return repo.archive_expired()
 
     @staticmethod
+    def update_training_status(db: Session, training_id: int, status) -> Optional[Training]:
+        repo = TrainingRepository(db)
+        training = repo.get_by_id(training_id)
+        if not training:
+            return None
+        return repo.update(training, status=status)
+
+    @staticmethod
     def get_training_stats(db: Session) -> dict:
         repo = TrainingRepository(db)
         return repo.get_stats()

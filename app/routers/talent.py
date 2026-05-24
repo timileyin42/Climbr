@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body, UploadFile, File, BackgroundTasks, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, or_
+from sqlalchemy import func, or_
+import sqlalchemy as sa
 import logging
 
 from app.database import get_db
@@ -621,12 +622,12 @@ async def upload_resume(
             detail="Failed to upload resume. Please try again later."
         )
     
-    # Update user's talent profile with resume URL
-    # This will be implemented with database operations later
-    # talent = db.query(Talent).filter(Talent.user_id == current_talent.id).first()
-    # talent.resume_url = file_url
-    # db.commit()
-    
+    # Update talent profile with resume URL
+    talent = db.query(Talent).filter(Talent.id == current_talent.id).first()
+    if talent:
+        talent.resume_url = file_url
+        db.commit()
+
     return {"message": "Resume uploaded successfully", "resume_url": file_url}
 
 @router.post("/profile/certificates/{certificate_id}/upload")
@@ -894,7 +895,7 @@ async def get_all_applications(
         TrainingApplication.status,
         TrainingApplication.created_at,
         Training.title.label('title'),
-        Trainer.company_name.label('company_provider'),
+        Trainer.provider_name.label('company_provider'),
         func.literal('Training').label('type')
     ).join(Training).join(Trainer).filter(TrainingApplication.talent_id == talent_id)
     
@@ -921,7 +922,7 @@ async def get_all_applications(
             or_(Job.title.ilike(search_term), Employer.company_name.ilike(search_term))
         )
         training_applications_query = training_applications_query.filter(
-            or_(Training.title.ilike(search_term), Trainer.company_name.ilike(search_term))
+            or_(Training.title.ilike(search_term), Trainer.provider_name.ilike(search_term))
         )
     
     # Combine queries
@@ -936,7 +937,7 @@ async def get_all_applications(
     total_count = combined_query.count()
     
     # Apply pagination and ordering
-    applications = combined_query.order_by(desc('created_at')).offset(skip).limit(limit).all()
+    applications = combined_query.order_by(sa.text('created_at DESC')).offset(skip).limit(limit).all()
     
     # Get statistics
     job_stats = db.query(

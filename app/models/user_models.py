@@ -190,7 +190,8 @@ class AdminCreate(AdminBase, UserCreate):
     pass
 
 class AdminOut(AdminBase, UserOut):
-    pass
+    user_type: Optional[str] = None
+    updated_at: Optional[datetime] = None
 
 # Token Models
 class Token(BaseModel):
