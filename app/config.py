@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     FIREBASE_PROJECT_ID: Optional[str] = None
     FIREBASE_CREDENTIALS_JSON: Optional[str] = None
 
+    # ── Redis / Celery ────────────────────────────────────────────────────────
+    REDIS_URL: Optional[str] = None
+
     # ── Admin bootstrap ────────────────────────────────────────────────────────
     ADMIN_PASSWORD: Optional[str] = None  # required in production (see validator)
     ADMIN_FIRST_NAME: str = "Admin"

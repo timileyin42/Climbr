@@ -87,6 +87,17 @@ class PaymentStatus(str, enum.Enum):
     ABANDONED = "abandoned"
     REVERSED = "reversed"
 
+class NotificationType(str, enum.Enum):
+    JOB_MATCH = "job_match"
+    APPLICATION_UPDATE = "application_update"
+    TRAINING_MATCH = "training_match"
+    SYSTEM = "system"
+
+class DevicePlatform(str, enum.Enum):
+    IOS = "ios"
+    ANDROID = "android"
+    WEB = "web"
+
 # ---------------------------------------------------------------------------
 # User model
 # ---------------------------------------------------------------------------
@@ -117,6 +128,7 @@ class User(Base):
     trainer = relationship("Trainer", back_populates="user", uselist=False)
     admin = relationship("Admin", back_populates="user", uselist=False)
     notification_settings = relationship("NotificationSettings", back_populates="user", uselist=False)
+    notifications = relationship("Notification", back_populates="user", lazy="dynamic")
 
 # ---------------------------------------------------------------------------
 # Talent-related models
@@ -204,6 +216,7 @@ class Talent(Base):
     languages = relationship("Language", back_populates="talent")
     saved_jobs = relationship("SavedJob", back_populates="talent")
     saved_trainings = relationship("SavedTraining", back_populates="talent")
+    device_tokens = relationship("DeviceToken", back_populates="talent")
 
 # ---------------------------------------------------------------------------
 # Employer model
@@ -555,3 +568,37 @@ class NotificationSettings(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="notification_settings")
+
+# ---------------------------------------------------------------------------
+# Notification model (in-app notifications inbox)
+# ---------------------------------------------------------------------------
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    type = Column(Enum(NotificationType), nullable=False)
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    data = Column(JSONB, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="notifications")
+
+# ---------------------------------------------------------------------------
+# DeviceToken model (FCM push targets — iOS, Android, Web)
+# ---------------------------------------------------------------------------
+
+class DeviceToken(Base):
+    __tablename__ = "device_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    talent_id = Column(Integer, ForeignKey("talents.id"), nullable=False, index=True)
+    token = Column(String, nullable=False, unique=True)
+    platform = Column(Enum(DevicePlatform), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    talent = relationship("Talent", back_populates="device_tokens")

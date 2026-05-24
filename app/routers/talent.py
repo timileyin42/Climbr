@@ -13,7 +13,12 @@ from app.services.training import TrainingService
 from app.dependencies.auth import get_current_talent
 from app.models.user_models import (EducationBase, EducationCreate, EducationOut, CertificateBase, CertificateCreate, CertificateOut, WorkExperienceBase, WorkExperienceCreate, WorkExperienceOut, HobbyBase, HobbyCreate, HobbyOut, LanguageBase, LanguageCreate, LanguageOut, TalentProfile, TalentUpdate, TalentDashboard, QuickAction, SkillBase, SkillCreate, SkillOut)
 from app.models.job_models import SavedJobOut
-from app.models.database_models import User, Talent, Job, Training, JobApplication, TrainingApplication, SavedJob, SavedTraining, Employer, Trainer, Skill, Certificate, Education, WorkExperience, ApplicationStatus, NotificationSettings
+from app.models.database_models import (
+    User, Talent, Job, Training, JobApplication, TrainingApplication,
+    SavedJob, SavedTraining, Employer, Trainer, Skill, Certificate,
+    Education, WorkExperience, ApplicationStatus, NotificationSettings,
+    Notification, DeviceToken, DevicePlatform,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -1496,3 +1501,167 @@ async def update_notification_settings(
         "message": "Notification settings updated successfully",
         "settings": formatted_settings
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# In-app notifications inbox
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/notifications")
+async def list_notifications(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    unread_only: bool = Query(False),
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """List the talent's in-app notifications, newest first."""
+    q = db.query(Notification).filter(Notification.user_id == current_talent.user_id)
+    if unread_only:
+        q = q.filter(Notification.is_read == False)
+
+    total = q.count()
+    unread_count = db.query(Notification).filter(
+        Notification.user_id == current_talent.user_id,
+        Notification.is_read == False,
+    ).count()
+
+    items = (
+        q.order_by(Notification.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "items": [
+            {
+                "id": n.id,
+                "type": n.type,
+                "title": n.title,
+                "body": n.body,
+                "data": n.data,
+                "is_read": n.is_read,
+                "created_at": n.created_at,
+            }
+            for n in items
+        ],
+        "unread_count": unread_count,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "pages": max(1, (total + limit - 1) // limit),
+        },
+    }
+
+
+@router.post("/notifications/{notification_id}/read", status_code=status.HTTP_200_OK)
+async def mark_notification_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """Mark a single notification as read."""
+    notif = db.query(Notification).filter(
+        Notification.id == notification_id,
+        Notification.user_id == current_talent.user_id,
+    ).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    notif.is_read = True
+    db.commit()
+    return {"message": "Notification marked as read"}
+
+
+@router.post("/notifications/read-all", status_code=status.HTTP_200_OK)
+async def mark_all_notifications_read(
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """Mark all unread notifications as read."""
+    updated = (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == current_talent.user_id,
+            Notification.is_read == False,
+        )
+        .update({"is_read": True})
+    )
+    db.commit()
+    return {"message": f"{updated} notification(s) marked as read"}
+
+
+@router.delete("/notifications/{notification_id}", status_code=status.HTTP_200_OK)
+async def delete_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """Delete a single notification."""
+    notif = db.query(Notification).filter(
+        Notification.id == notification_id,
+        Notification.user_id == current_talent.user_id,
+    ).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    db.delete(notif)
+    db.commit()
+    return {"message": "Notification deleted"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Device token registration (FCM push — iOS, Android, Web)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/device-token", status_code=status.HTTP_200_OK)
+async def register_device_token(
+    token: str = Body(..., embed=True),
+    platform: DevicePlatform = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """
+    Register or refresh a device FCM token.
+    Call this after login and whenever Firebase refreshes the token.
+    Platform must be one of: ios, android, web.
+    """
+    existing = db.query(DeviceToken).filter(DeviceToken.token == token).first()
+    if existing:
+        # Token already registered — ensure it's mapped to this talent
+        if existing.talent_id != current_talent.id:
+            existing.talent_id = current_talent.id
+            existing.platform = platform
+            db.commit()
+        return {"message": "Device token registered"}
+
+    db.add(DeviceToken(
+        talent_id=current_talent.id,
+        token=token,
+        platform=platform,
+    ))
+    db.commit()
+    return {"message": "Device token registered"}
+
+
+@router.delete("/device-token", status_code=status.HTTP_200_OK)
+async def remove_device_token(
+    token: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """
+    Remove a device token on logout so the device stops receiving push notifications.
+    """
+    deleted = (
+        db.query(DeviceToken)
+        .filter(
+            DeviceToken.token == token,
+            DeviceToken.talent_id == current_talent.id,
+        )
+        .delete()
+    )
+    db.commit()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Device token removed"}

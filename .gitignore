@@ -24,3 +24,7 @@ logs/
 
 # Internal prompt/planning docs
 climbr_prompts*.md
+climbr-4e120-firebase-adminsdk-fbsvc-cbd24ded60.json
+GoogleService-Info.plist
+/docs
+phase3_web.md

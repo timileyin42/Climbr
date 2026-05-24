@@ -11,7 +11,7 @@ from app.services.payment import PaymentService
 from app.services.pricing import PricingService
 from app.services.job import JobService
 from app.models.user_models import EmployerOut
-from app.models.database_models import User, Employer, Payment, JobPricing, Job, ApplicationStatus
+from app.models.database_models import User, Employer, Payment, JobPricing, Job, ApplicationStatus, Talent
 from app.models.job_models import JobCreate, JobUpdate
 
 # from app.models.job_models import JobCreate, JobOut, JobApplicant
@@ -170,19 +170,25 @@ async def create_job(
         )
     
     try:
-        # Create the job using JobService
         job = JobService.create_job(db, current_employer.id, job_data.dict())
-        
-        # Deduct one credit after successful job creation
         current_employer.job_credits -= 1
         db.commit()
-        
+
+        # Fire-and-forget: notify matching talents asynchronously
+        try:
+            from app.tasks.notification_tasks import notify_new_job_matches
+            notify_new_job_matches.delay(job.id)
+        except Exception:
+            pass  # worker not running in dev — don't fail the request
+
         return {
             "message": "Job created successfully",
             "job_id": job.id,
             "remaining_credits": current_employer.job_credits
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Job creation failed: {str(e)}")
@@ -342,6 +348,7 @@ async def accept_applicant(
         if not updated_application:
             raise HTTPException(status_code=404, detail="Application not found")
 
+        _fire_status_notification(updated_application, job, "accepted")
         return {
             "message": "Applicant accepted successfully",
             "job_id": job_id,
@@ -374,6 +381,7 @@ async def shortlist_applicant(
         if not updated_application:
             raise HTTPException(status_code=404, detail="Application not found")
 
+        _fire_status_notification(updated_application, job, "shortlisted")
         return {
             "message": "Applicant shortlisted successfully",
             "job_id": job_id,
@@ -407,7 +415,8 @@ async def reject_applicant(
         updated_application = JobService.update_application_status(db, applicant_id, ApplicationStatus.REJECTED)
         if not updated_application:
             raise HTTPException(status_code=404, detail="Application not found")
-        
+
+        _fire_status_notification(updated_application, job, "rejected")
         return {
             "message": "Applicant rejected successfully",
             "job_id": job_id,
@@ -419,6 +428,25 @@ async def reject_applicant(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to reject applicant: {str(e)}")
+
+def _fire_status_notification(application, job, new_status: str):
+    """Fire the application-status notification task without blocking the response."""
+    try:
+        from app.tasks.notification_tasks import notify_application_status_update
+        talent = application.talent
+        if not talent or not talent.user:
+            return
+        notify_application_status_update.delay(
+            talent_user_id=talent.user.id,
+            talent_email=talent.user.email,
+            first_name=talent.first_name or "there",
+            job_title=job.title,
+            new_status=new_status,
+            job_id=job.id,
+        )
+    except Exception:
+        pass  # worker not running — don't fail the request
+
 
 @router.post("/jobs/{job_id}/renew")
 async def renew_job(

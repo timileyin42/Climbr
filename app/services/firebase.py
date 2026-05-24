@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 from typing import Optional
@@ -23,10 +24,11 @@ def _get_app():
 
     if not firebase_admin._apps:
         try:
-            cred_dict = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+            raw = base64.b64decode(settings.FIREBASE_CREDENTIALS_JSON).decode("utf-8")
+            cred_dict = json.loads(raw)
             cred = credentials.Certificate(cred_dict)
-        except (json.JSONDecodeError, ValueError) as exc:
-            raise RuntimeError(f"FIREBASE_CREDENTIALS_JSON is invalid JSON: {exc}") from exc
+        except Exception as exc:
+            raise RuntimeError(f"FIREBASE_CREDENTIALS_JSON is not valid base64-encoded JSON: {exc}") from exc
 
         _firebase_app = firebase_admin.initialize_app(cred)
     else:
