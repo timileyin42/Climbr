@@ -1,0 +1,17 @@
+# Development and testing dependencies — not for production
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.3.5
+pytest-asyncio==0.25.3
+pytest-cov==6.1.0
+httpx==0.28.1
+
+# ── Mocking / factories ───────────────────────────────────────────────────────
+factory-boy==3.3.3
+
+# ── Linting / formatting ──────────────────────────────────────────────────────
+ruff==0.11.12
+black==25.1.0
+
+# ── Type checking ─────────────────────────────────────────────────────────────
+mypy==1.15.0
