@@ -3,7 +3,6 @@ import logging
 import uuid
 
 from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 directories = setup_directories()
 
-# ── Rate limiter (attach before app routes) ────────────────────────────────
+# ── Rate limiter ───────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 
 app = FastAPI(
@@ -32,7 +31,44 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# ── ETag middleware for GET list responses ────────────────────────────────
+# ── CORS — custom middleware so headers are set on ALL responses including
+#    errors. Starlette's CORSMiddleware strips headers on 400/500 which leaves
+#    the browser with no Access-Control-Allow-Origin and blocks everything.
+# ──────────────────────────────────────────────────────────────────────────────
+_CORS_METHODS = "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
+_CORS_MAX_AGE = "600"
+
+
+@app.middleware("http")
+async def cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin", "")
+    allowed = origin in settings.cors_origins_list
+
+    # Short-circuit OPTIONS preflight — never reach the route handler
+    if request.method == "OPTIONS":
+        headers = {
+            "Access-Control-Allow-Origin": origin if allowed else "",
+            "Access-Control-Allow-Methods": _CORS_METHODS,
+            "Access-Control-Allow-Headers": request.headers.get(
+                "access-control-request-headers", "*"
+            ),
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Max-Age": _CORS_MAX_AGE,
+            "Vary": "Origin",
+        }
+        return Response(status_code=200, headers=headers)
+
+    response = await call_next(request)
+
+    if allowed:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+
+    return response
+
+
+# ── ETag middleware for GET list responses ─────────────────────────────────────
 @app.middleware("http")
 async def etag_middleware(request: Request, call_next):
     response = await call_next(request)
@@ -57,7 +93,7 @@ async def etag_middleware(request: Request, call_next):
     return response
 
 
-# ── Request-ID + Security-Headers middleware ──────────────────────────────
+# ── Request-ID + Security-Headers middleware ───────────────────────────────────
 @app.middleware("http")
 async def add_request_id_and_security_headers(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
@@ -76,19 +112,7 @@ async def add_request_id_and_security_headers(request: Request, call_next):
     return response
 
 
-# ── CORS — must be added AFTER the @app.middleware decorators so it sits
-#    outermost in the ASGI stack and handles OPTIONS before BaseHTTPMiddleware
-#    layers can interfere. ────────────────────────────────────────────────
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# ── Global exception handler ──────────────────────────────────────────────
+# ── Global exception handler ───────────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     request_id = getattr(request.state, "request_id", "unknown")
@@ -102,7 +126,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ── Routers ────────────────────────────────────────────────────────────────
+# ── Routers ────────────────────────────────────────────────────────────────────
 app.include_router(public.router, tags=["public"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(talent.router, prefix="/talent", tags=["talent"])
@@ -114,7 +138,7 @@ app.include_router(messages.router, prefix="/messages", tags=["messages"])
 app.include_router(profile_views.router, tags=["profile-views"])
 
 
-# ── Lifecycle ─────────────────────────────────────────────────────────────
+# ── Lifecycle ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting up Climbr API (env=%s)", settings.ENVIRONMENT)
