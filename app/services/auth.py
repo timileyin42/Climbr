@@ -2,8 +2,6 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional
-import os
-from dotenv import load_dotenv
 
 from app.models.database_models import User, UserType, Talent, Employer, Trainer, Admin
 from app.dependencies.auth import create_access_token
@@ -13,11 +11,11 @@ from app.repositories.employer_repository import EmployerRepository
 from app.repositories.trainer_repository import TrainerRepository
 from app.repositories.admin_repository import AdminRepository
 
-# Load environment variables
-load_dotenv()
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Argon2 is the primary scheme; bcrypt kept for verifying legacy hashes
+pwd_context = CryptContext(
+    schemes=["argon2", "bcrypt"],
+    deprecated=["bcrypt"],
+)
 
 
 class AuthService:
