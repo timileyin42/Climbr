@@ -9,6 +9,7 @@ from app.models.database_models import User, UserType
 from app.services.auth import AuthService
 from app.services.verification import VerificationService
 from app.services.firebase import verify_firebase_id_token
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -258,3 +259,15 @@ async def firebase_sign_in(
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Account creation failed: {exc}") from exc
+
+@router.get("/me")
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Return the authenticated user's base profile."""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "user_type": current_user.user_type.value,
+        "is_active": current_user.is_active,
+        "is_verified": current_user.is_verified,
+        "created_at": current_user.created_at,
+    }

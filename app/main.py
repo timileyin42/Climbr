@@ -1,9 +1,10 @@
+import hashlib
 import logging
 import uuid
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -38,6 +39,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── ETag middleware for GET list responses ────────────────────────────────
+@app.middleware("http")
+async def etag_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if (
+        request.method == "GET"
+        and response.status_code == 200
+        and response.headers.get("content-type", "").startswith("application/json")
+    ):
+        body = b""
+        async for chunk in response.body_iterator:
+            body += chunk
+        etag = f'"{hashlib.md5(body).hexdigest()}"'
+        if request.headers.get("if-none-match") == etag:
+            return Response(status_code=304, headers={"ETag": etag})
+        response = Response(
+            content=body,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.media_type,
+        )
+        response.headers["ETag"] = etag
+    return response
 
 
 # ── Request-ID + Security-Headers middleware ──────────────────────────────
@@ -103,3 +129,13 @@ async def root():
     return {
         "message": "Welcome to Climbr API - Because building your future shouldn't feel like rocket science."
     }
+
+
+@app.get("/health", tags=["system"])
+async def health():
+    return {"status": "ok", "environment": settings.ENVIRONMENT}
+
+
+@app.get("/version", tags=["system"])
+async def version():
+    return {"version": "1.0.0", "api": "Climbr API"}

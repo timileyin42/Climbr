@@ -203,6 +203,7 @@ class Talent(Base):
     hobbies = relationship("Hobby", back_populates="talent")
     languages = relationship("Language", back_populates="talent")
     saved_jobs = relationship("SavedJob", back_populates="talent")
+    saved_trainings = relationship("SavedTraining", back_populates="talent")
 
 # ---------------------------------------------------------------------------
 # Employer model
@@ -406,6 +407,24 @@ class SavedJob(Base):
 
     job = relationship("Job")
     talent = relationship("Talent", back_populates="saved_jobs")
+
+# ---------------------------------------------------------------------------
+# SavedTraining model
+# ---------------------------------------------------------------------------
+
+class SavedTraining(Base):
+    __tablename__ = "saved_trainings"
+    __table_args__ = (
+        UniqueConstraint('training_id', 'talent_id', name='uq_saved_trainings_training_talent'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    training_id = Column(Integer, ForeignKey("trainings.id"))
+    talent_id = Column(Integer, ForeignKey("talents.id"), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    training = relationship("Training")
+    talent = relationship("Talent", back_populates="saved_trainings")
 
 # ---------------------------------------------------------------------------
 # Payment model

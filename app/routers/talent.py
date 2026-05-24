@@ -13,7 +13,7 @@ from app.services.training import TrainingService
 from app.dependencies.auth import get_current_talent
 from app.models.user_models import (EducationBase, EducationCreate, EducationOut, CertificateBase, CertificateCreate, CertificateOut, WorkExperienceBase, WorkExperienceCreate, WorkExperienceOut, HobbyBase, HobbyCreate, HobbyOut, LanguageBase, LanguageCreate, LanguageOut, TalentProfile, TalentUpdate, TalentDashboard, QuickAction, SkillBase, SkillCreate, SkillOut)
 from app.models.job_models import SavedJobOut
-from app.models.database_models import User, Talent, Job, Training, JobApplication, TrainingApplication, SavedJob, Employer, Trainer, Skill, Certificate, Education, WorkExperience, ApplicationStatus, NotificationSettings
+from app.models.database_models import User, Talent, Job, Training, JobApplication, TrainingApplication, SavedJob, SavedTraining, Employer, Trainer, Skill, Certificate, Education, WorkExperience, ApplicationStatus, NotificationSettings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -1106,6 +1106,74 @@ async def delete_saved_job(
         )
     
     return None
+
+# ── Saved Trainings (swipe / bookmark) ────────────────────────────────────
+
+@router.get("/saved-trainings")
+async def get_saved_trainings(
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """Get all saved trainings for the current talent."""
+    saved = (
+        db.query(SavedTraining)
+        .filter(SavedTraining.talent_id == current_talent.id)
+        .order_by(SavedTraining.created_at.desc())
+        .all()
+    )
+    return {"saved_trainings": saved, "total": len(saved)}
+
+
+@router.post("/saved-trainings/{training_id}", status_code=status.HTTP_201_CREATED)
+async def save_training(
+    training_id: int,
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """Save (bookmark) a training for the current talent."""
+    training = db.query(Training).filter(Training.id == training_id).first()
+    if not training:
+        raise HTTPException(status_code=404, detail="Training not found")
+
+    existing = (
+        db.query(SavedTraining)
+        .filter(
+            SavedTraining.training_id == training_id,
+            SavedTraining.talent_id == current_talent.id,
+        )
+        .first()
+    )
+    if existing:
+        return existing
+
+    saved = SavedTraining(training_id=training_id, talent_id=current_talent.id)
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+    return saved
+
+
+@router.delete("/saved-trainings/{training_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def unsave_training(
+    training_id: int,
+    db: Session = Depends(get_db),
+    current_talent: Talent = Depends(get_current_talent),
+):
+    """Remove a training from the current talent's saved list."""
+    saved = (
+        db.query(SavedTraining)
+        .filter(
+            SavedTraining.training_id == training_id,
+            SavedTraining.talent_id == current_talent.id,
+        )
+        .first()
+    )
+    if not saved:
+        raise HTTPException(status_code=404, detail="Saved training not found")
+    db.delete(saved)
+    db.commit()
+    return None
+
 
 @router.get("/dashboard", response_model=TalentDashboard)
 async def get_talent_dashboard(
