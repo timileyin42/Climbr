@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { CommandPalette } from './CommandPalette'
 import { useAuthStore } from '@/lib/auth/store'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,7 @@ export function AppShell() {
           <Suspense fallback={null}>
             <Outlet />
           </Suspense>
+          <CommandPalette />
         </main>
       </div>
     </div>

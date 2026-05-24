@@ -88,6 +88,14 @@
   }
 
   html.dark {
+    --color-bg-primary:     var(--color-dark-bg-primary);
+    --color-bg-secondary:   var(--color-dark-bg-secondary);
+    --color-bg-tertiary:    var(--color-dark-bg-tertiary);
+    --color-border:         var(--color-dark-border);
+    --color-border-strong:  #2E3A45;
+    --color-text-primary:   var(--color-dark-text-primary);
+    --color-text-secondary: var(--color-dark-text-secondary);
+    --color-text-tertiary:  #6B7688;
     color: var(--color-dark-text-primary);
     background-color: var(--color-dark-bg-primary);
   }

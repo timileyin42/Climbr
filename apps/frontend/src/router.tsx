@@ -17,12 +17,12 @@ const FAQ            = () => import('@/features/public/FAQ')
 const Contact        = () => import('@/features/public/Contact')
 const Privacy        = () => import('@/features/public/Privacy')
 const Terms          = () => import('@/features/public/Terms')
+const AdminLogin     = () => import('@/features/auth/AdminLogin')
 
 // ── React.lazy (JSX inside guards — Suspense lives in AppShell) ───────────────
 const TalentDashboard   = lazy(() => import('@/features/talent/dashboard/Dashboard').then((m) => ({ default: m.Component })))
 const EmployerDashboard = lazy(() => import('@/features/employer/dashboard/Dashboard').then((m) => ({ default: m.Component })))
 const TrainerDashboard  = lazy(() => import('@/features/trainer/dashboard/Dashboard').then((m) => ({ default: m.Component })))
-const AdminDashboard    = lazy(() => import('@/features/admin/dashboard/Dashboard').then((m) => ({ default: m.Component })))
 const Jobs         = lazy(() => import('@/features/talent/jobs/Jobs').then((m) => ({ default: m.Component })))
 const JobDetail    = lazy(() => import('@/features/talent/jobs/JobDetail').then((m) => ({ default: m.Component })))
 const Trainings    = lazy(() => import('@/features/talent/trainings/Trainings').then((m) => ({ default: m.Component })))
@@ -45,11 +45,37 @@ const TrainerApplicants      = lazy(() => import('@/features/trainer/trainings/T
 const TrainerCredits         = lazy(() => import('@/features/trainer/credits/Credits').then((m) => ({ default: m.Component })))
 const TrainerSettings        = lazy(() => import('@/features/trainer/settings/Settings').then((m) => ({ default: m.Component })))
 
+// Admin
+const AdminDashboardPage = lazy(() => import('@/features/admin/dashboard/Dashboard').then((m) => ({ default: m.Component })))
+const AdminUsers         = lazy(() => import('@/features/admin/users/Users').then((m) => ({ default: m.Component })))
+const AdminContent       = lazy(() => import('@/features/admin/content/Content').then((m) => ({ default: m.Component })))
+const AdminPayments      = lazy(() => import('@/features/admin/payments/Payments').then((m) => ({ default: m.Component })))
+const AdminPricing       = lazy(() => import('@/features/admin/pricing/Pricing').then((m) => ({ default: m.Component })))
+const AdminReports       = lazy(() => import('@/features/admin/reports/Reports').then((m) => ({ default: m.Component })))
+const AdminAdmins        = lazy(() => import('@/features/admin/admins/Admins').then((m) => ({ default: m.Component })))
+const AdminContact       = lazy(() => import('@/features/admin/contact/Contact').then((m) => ({ default: m.Component })))
+const AdminSettings      = lazy(() => import('@/features/admin/settings/Settings').then((m) => ({ default: m.Component })))
+
 // ── Placeholder ───────────────────────────────────────────────────────────────
 function Placeholder({ name }: { name: string }) {
   return (
     <div className="flex items-center justify-center h-64 text-[var(--color-text-secondary)]">
       <p className="text-[16px] font-[500]">{name} — coming soon</p>
+    </div>
+  )
+}
+
+function ErrorPage({ code, title, message }: { code: number; title: string; message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg-primary)]">
+      <div className="max-w-md text-center">
+        <p className="text-[80px] font-[900] text-[var(--color-brand-cyan)] leading-none">{code}</p>
+        <h1 className="text-[24px] font-[700] text-[var(--color-text-primary)] mt-4 mb-2">{title}</h1>
+        <p className="text-[14px] text-[var(--color-text-secondary)] mb-8">{message}</p>
+        <a href="/" className="inline-flex items-center px-5 py-2.5 rounded-[var(--radius-pill)] text-[14px] font-[600] text-white" style={{ background: 'var(--color-brand-cyan)' }}>
+          Go home
+        </a>
+      </div>
     </div>
   )
 }
@@ -83,6 +109,7 @@ export const router = createBrowserRouter([
   { path: '/contact',         lazy: Contact },
   { path: '/privacy',         lazy: Privacy },
   { path: '/terms',           lazy: Terms },
+  { path: '/admin/login',     lazy: AdminLogin },
 
   // ── Authenticated shell ────────────────────────────────────────────────────
   {
@@ -118,19 +145,19 @@ export const router = createBrowserRouter([
       { path: '/trainer/settings',                         element: <TrainerOnly><TrainerSettings /></TrainerOnly> },
 
       // Admin
-      { path: '/admin/dashboard', element: <AdminOnly><AdminDashboard /></AdminOnly> },
-      { path: '/admin/users',     element: <AdminOnly><Placeholder name="Users" /></AdminOnly> },
-      { path: '/admin/content',   element: <AdminOnly><Placeholder name="Content" /></AdminOnly> },
-      { path: '/admin/payments',  element: <AdminOnly><Placeholder name="Payments" /></AdminOnly> },
-      { path: '/admin/pricing',   element: <AdminOnly><Placeholder name="Pricing" /></AdminOnly> },
-      { path: '/admin/reports',   element: <AdminOnly><Placeholder name="Reports" /></AdminOnly> },
-      { path: '/admin/contact',   element: <AdminOnly><Placeholder name="Contact Submissions" /></AdminOnly> },
-      { path: '/admin/admins',    element: <AdminOnly><Placeholder name="Admin Users" /></AdminOnly> },
-      { path: '/admin/settings',  element: <AdminOnly><Placeholder name="Admin Settings" /></AdminOnly> },
+      { path: '/admin/dashboard', element: <AdminOnly><AdminDashboardPage /></AdminOnly> },
+      { path: '/admin/users',     element: <AdminOnly><AdminUsers /></AdminOnly> },
+      { path: '/admin/content',   element: <AdminOnly><AdminContent /></AdminOnly> },
+      { path: '/admin/payments',  element: <AdminOnly><AdminPayments /></AdminOnly> },
+      { path: '/admin/pricing',   element: <AdminOnly><AdminPricing /></AdminOnly> },
+      { path: '/admin/reports',   element: <AdminOnly><AdminReports /></AdminOnly> },
+      { path: '/admin/contact',   element: <AdminOnly><AdminContact /></AdminOnly> },
+      { path: '/admin/admins',    element: <AdminOnly><AdminAdmins /></AdminOnly> },
+      { path: '/admin/settings',  element: <AdminOnly><AdminSettings /></AdminOnly> },
 
-      { path: '/403', element: <Placeholder name="403 — Access Denied" /> },
+      { path: '/403', element: <ErrorPage code={403} title="Access Denied" message="You don't have permission to view this page." /> },
     ],
   },
 
-  { path: '*', element: <Placeholder name="404 — Page Not Found" /> },
+  { path: '*', element: <ErrorPage code={404} title="Page Not Found" message="The page you're looking for doesn't exist or has been moved." /> },
 ])
