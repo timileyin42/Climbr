@@ -1,455 +1,328 @@
 # Climbr Backend API
 
-*"Because building your future shouldn't feel like rocket science."*
-
-## Overview
-
-Climbr is a comprehensive career platform that connects young talent with job opportunities and training programs. This repository contains the backend API built with FastAPI, featuring a robust architecture with role-based access control, payment processing, email notifications, file storage, and comprehensive user management.
-
-## 🏗️ Architecture
-
-The backend follows a clean architecture pattern with clear separation of concerns:
-
-- **Routers**: Handle HTTP requests and responses
-- **Services**: Contain business logic and data processing
-- **Models**: Define data structures (Pydantic for API, SQLAlchemy for database)
-- **Dependencies**: Manage authentication and shared functionality
-- **Database**: SQLite with Alembic migrations
-
-## 🚀 Features
-
-### For Talents
-- ✅ Complete profile management (education, work experience, skills, certificates)
-- ✅ Job and training browsing with advanced filtering
-- ✅ Application tracking and status updates
-- ✅ Resume and document upload
-- ✅ Email verification and password reset
-- ✅ Google OAuth authentication
-- ✅ Notification preferences management
-- ✅ Saved jobs and trainings
-- ✅ Dashboard with personalized recommendations
-
-### For Employers
-- ✅ Job posting and management (paid service)
-- ✅ Applicant management and tracking
-- ✅ Job performance analytics
-- ✅ Company profile management
-- ✅ Payment processing for job posts
-- ✅ File uploads for job images
-- ✅ Application status management
-
-### For Trainers
-- ✅ Training program posting (paid service)
-- ✅ Training applicant management
-- ✅ Training performance analytics
-- ✅ Trainer profile management
-- ✅ Payment processing for training posts
-- ✅ File uploads for training materials
-- ✅ Category and highlights management
-
-### For Admins
-- ✅ Complete user management (all user types)
-- ✅ Job and training moderation
-- ✅ Payment and pricing management
-- ✅ System reporting and analytics
-- ✅ Content archiving and cleanup
-- ✅ Platform configuration
-
-### System Features
-- ✅ Role-based access control (Talent, Employer, Trainer, Admin)
-- ✅ JWT-based authentication with refresh tokens
-- ✅ Email notification system with templates
-- ✅ File storage (AWS S3 and Google Cloud Storage)
-- ✅ Payment processing with Stripe integration
-- ✅ Database migrations with Alembic
-- ✅ Comprehensive logging and error handling
-- ✅ Contact form with admin notifications
-- ✅ Auto-archiving of expired content
-
-## 📁 Project Structure
-
-```
-Climbr-Backend/
-├── app/
-│   ├── main.py                    # FastAPI application entry point
-│   ├── database.py                # Database configuration and session management
-│   ├── init_db.py                 # Database initialization script
-│   │
-│   ├── dependencies/              # Shared dependencies
-│   │   └── auth.py                # Authentication dependencies and JWT handling
-│   │
-│   ├── models/                    # Data models
-│   │   ├── database_models.py     # SQLAlchemy ORM models
-│   │   ├── user_models.py         # Pydantic models for user-related APIs
-│   │   ├── job_models.py          # Pydantic models for job-related APIs
-│   │   └── training_models.py     # Pydantic models for training-related APIs
-│   │
-│   ├── routers/                   # API route handlers
-│   │   ├── auth.py                # Authentication endpoints (login, register, OAuth)
-│   │   ├── talent.py              # Talent-specific endpoints
-│   │   ├── employer.py            # Employer-specific endpoints
-│   │   ├── trainer.py             # Trainer-specific endpoints
-│   │   ├── admin.py               # Admin-specific endpoints
-│   │   └── public.py              # Public endpoints (no authentication required)
-│   │
-│   ├── services/                  # Business logic layer
-│   │   ├── auth.py                # Authentication and user management
-│   │   ├── user.py                # User profile and data management
-│   │   ├── job.py                 # Job posting and application logic
-│   │   ├── training.py            # Training program and application logic
-│   │   ├── payment.py             # Stripe payment processing
-│   │   ├── pricing.py             # Pricing management for jobs and trainings
-│   │   ├── email.py               # Email notification service (Resend API)
-│   │   ├── storage.py             # File storage (AWS S3, Google Cloud)
-│   │   ├── verification.py        # Email verification and password reset
-│   │   ├── oauth.py               # Google OAuth integration
-│   │   ├── contact.py             # Contact form handling
-│   │   ├── reporting.py           # Data export and reporting
-│   │   └── archiving.py           # Automated content archiving
-│   │
-│   └── templates/                 # Email templates (Jinja2)
-│       ├── email_verification.html
-│       ├── password_reset.html
-│       ├── welcome.html
-│       ├── contact_notification.html
-│       ├── application_confirmation.html
-│       └── application_status_update.html
-│
-├── alembic/                       # Database migrations
-│   ├── versions/                  # Migration files
-│   ├── env.py                     # Alembic environment configuration
-│   └── alembic.ini                # Alembic configuration
-│
-├── tests/                         # Test suite
-│   ├── test_public_routes.py      # Public API tests
-│   └── README.md                  # Testing documentation
-│
-├── requirements.txt               # Python dependencies
-├── run.py                         # Application runner script
-├── setup.md                       # Setup instructions
-├── prd.md                         # Production deployment guide
-└── README.md                      # This documentation
-```
-
-## 🗄️ Database Schema
-
-The application uses SQLAlchemy ORM with the following main entities:
-
-### Core Models
-- **User**: Base user model with authentication
-- **Talent**: Extended profile for job seekers
-- **Employer**: Company profiles for job posters
-- **Trainer**: Profiles for training providers
-- **Admin**: Administrative users
-
-### Content Models
-- **Job**: Job postings with requirements and details
-- **Training**: Training programs with categories
-- **JobApplication**: Job application tracking
-- **TrainingApplication**: Training application tracking
-- **SavedJob**: User's saved job listings
-
-### Profile Models
-- **Education**: Educational background
-- **WorkExperience**: Professional experience
-- **Certificate**: Certifications and achievements
-- **Skill**: Skills and competencies
-- **Hobby**: Personal interests
-- **Language**: Language proficiencies
-- **NotificationSettings**: User notification preferences
-
-### System Models
-- **Payment**: Payment transaction records
-- **JobPricing**: Pricing tiers for job posts
-- **TrainingPricing**: Pricing tiers for training posts
-- **ContactSubmission**: Contact form submissions
-
-## 🔐 Authentication & Authorization
-
-### Authentication Methods
-1. **Email/Password**: Traditional authentication with JWT tokens
-2. **Google OAuth**: Social login integration
-3. **Email Verification**: Required for account activation
-4. **Password Reset**: Secure token-based password recovery
-
-### Authorization Levels
-- **Public**: No authentication required
-- **Authenticated**: Valid JWT token required
-- **Role-based**: Specific user type required (Talent, Employer, Trainer, Admin)
-
-### JWT Token System
-- Access tokens with configurable expiration
-- Refresh token mechanism
-- Secure token generation and validation
-
-## 📧 Email System
-
-Integrated email notification system using Resend API:
-
-### Email Types
-- **Verification**: Account email verification
-- **Password Reset**: Secure password recovery
-- **Welcome**: New user onboarding
-- **Application Updates**: Job/training application status changes
-- **Contact Notifications**: Admin notifications for contact form submissions
-
-### Template System
-- Jinja2-based HTML email templates
-- Dynamic content rendering
-- Responsive email design
-- Fallback text content
-
-## 💳 Payment Integration
-
-Stripe-powered payment system for premium features:
-
-### Payment Features
-- Job posting payments for employers
-- Training posting payments for trainers
-- Flexible pricing tiers
-- Payment history tracking
-- Secure payment processing
-
-### Pricing Management
-- Dynamic pricing configuration
-- Admin-controlled pricing tiers
-- Payment validation and verification
-
-## 📁 File Storage
-
-Multi-provider file storage system:
-
-### Supported Providers
-- **AWS S3**: Primary cloud storage
-- **Google Cloud Storage**: Alternative cloud storage
-- **Local Storage**: Development and testing
-
-### File Types
-- Resume uploads (PDF, DOC, DOCX)
-- Profile images
-- Job posting images
-- Training material uploads
-- Certificate documents
-
-## 🔧 API Endpoints
-
-### Public Endpoints (`/public`)
-- `GET /jobs` - Browse job listings
-- `GET /trainings` - Browse training programs
-- `POST /contact` - Submit contact form
-- `GET /jobs/recommended` - Get recommended jobs
-- `GET /trainings/recommended` - Get recommended trainings
-
-### Authentication (`/auth`)
-- `POST /register` - User registration
-- `POST /login` - User login
-- `POST /refresh` - Refresh JWT token
-- `POST /verify-email` - Email verification
-- `POST /forgot-password` - Password reset request
-- `POST /reset-password` - Password reset confirmation
-- `GET /google` - Google OAuth login
-- `GET /google/callback` - Google OAuth callback
-
-### Talent Endpoints (`/talent`)
-- Profile management (education, experience, skills)
-- Job applications and tracking
-- Training applications
-- File uploads (resume, documents)
-- Notification settings
-- Dashboard and recommendations
-
-### Employer Endpoints (`/employer`)
-- Job posting and management
-- Applicant management
-- Payment processing
-- Company profile management
-- Analytics and reporting
-
-### Trainer Endpoints (`/trainer`)
-- Training program management
-- Applicant management
-- Payment processing
-- Trainer profile management
-- Analytics and reporting
-
-### Admin Endpoints (`/admin`)
-- User management (all types)
-- Content moderation
-- Payment and pricing management
-- System reporting
-- Platform configuration
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.8 or higher
-- pip (Python package installer)
-- SQLite (included with Python)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/climbr-backend.git
-   cd Climbr-Backend
-   ```
-
-2. **Create a virtual environment:**
-   ```bash
-   python -m venv venv
-   ```
-
-3. **Activate the virtual environment:**
-   - Windows:
-     ```bash
-     venv\Scripts\activate
-     ```
-   - macOS/Linux:
-     ```bash
-     source venv/bin/activate
-     ```
-
-4. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. **Create environment file:**
-   Copy `.env.example` to `.env` and configure:
-   ```env
-   # Database
-   DATABASE_URL=sqlite:///./climbr.db
-   
-   # JWT Configuration
-   JWT_SECRET_KEY=your-super-secret-jwt-key-here
-   JWT_ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
-   
-   # Email Service (Resend)
-   RESEND_API_KEY=your-resend-api-key
-   FROM_EMAIL=no-reply@yourdomain.com
-   FROM_NAME=Climbr Team
-   ADMIN_EMAIL=admin@yourdomain.com
-   
-   # File Storage (AWS S3)
-   AWS_ACCESS_KEY_ID=your-aws-access-key
-   AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-   AWS_REGION=us-east-1
-   AWS_BUCKET_NAME=your-bucket-name
-   
-   # Google Cloud Storage (Alternative)
-   GOOGLE_CLOUD_PROJECT=your-project-id
-   GOOGLE_CLOUD_BUCKET=your-bucket-name
-   
-   # Google OAuth
-   GOOGLE_CLIENT_ID=your-google-client-id
-   GOOGLE_CLIENT_SECRET=your-google-client-secret
-   GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
-   
-   # Stripe Payment
-   STRIPE_SECRET_KEY=your-stripe-secret-key
-   STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
-   
-   # Templates
-   TEMPLATES_DIR=app/templates
-   ```
-
-6. **Initialize the database:**
-   ```bash
-   python -m alembic upgrade head
-   python app/init_db.py
-   ```
-
-7. **Run the application:**
-   ```bash
-   python run.py
-   ```
-   Or using uvicorn directly:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-
-### Development Setup
-
-The API will be available at:
-- **Application**: http://localhost:8000
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-## 🧪 Testing
-
-Run the test suite:
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app
-
-# Run specific test file
-pytest tests/test_public_routes.py
-
-# Run with verbose output
-pytest -v
-```
-
-## 🚀 Production Deployment
-
-For production deployment, see `prd.md` for detailed instructions including:
-- Environment configuration
-- Database setup
-- SSL/TLS configuration
-- Performance optimization
-- Monitoring and logging
-
-## 🔧 Configuration
-
-### Environment Variables
-
-All configuration is handled through environment variables. See `.env.example` for a complete list of available options.
-
-### Database Migrations
-
-The application uses Alembic for database migrations:
-
-```bash
-# Create a new migration
-python -m alembic revision --autogenerate -m "Description of changes"
-
-# Apply migrations
-python -m alembic upgrade head
-
-# Rollback migrations
-python -m alembic downgrade -1
-```
-
-## 📊 Monitoring & Logging
-
-The application includes comprehensive logging:
-- Request/response logging
-- Error tracking
-- Performance monitoring
-- Security event logging
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the GitHub repository
-- Contact the development team
-- Check the documentation at `/docs` endpoint
+FastAPI backend for the Climbr career platform — connects talent with jobs and training programs.
 
 ---
+
+## System Architecture
+
+```mermaid
+graph TB
+    subgraph Clients
+        Mobile["📱 Flutter Mobile"]
+        Web["🌐 Web App"]
+    end
+
+    subgraph Climbr API ["Climbr API  (FastAPI)"]
+        GW["Rate Limiter\nslowapi 200 req/min"]
+        MW["Middleware\nETag · Security Headers · Request-ID"]
+        Router["Routers\n/auth · /talent · /employer\n/trainer · /admin · /public\n/payments"]
+        Services["Services\nauth · storage · email\npayment · firebase · verification"]
+        Repos["Repository Layer\nBaseRepository[T]\n15 typed repos"]
+    end
+
+    subgraph Storage ["External Services"]
+        PG[("PostgreSQL 16")]
+        R2["☁️ Cloudflare R2\nFile Storage"]
+        Resend["✉️ Resend\nTransactional Email"]
+        Paystack["💳 Paystack\nPayments (NGN)"]
+        Firebase["🔥 Firebase Admin\nGoogle Sign-in"]
+    end
+
+    Mobile -->|HTTPS + JWT| GW
+    Web -->|HTTPS + JWT| GW
+    GW --> MW
+    MW --> Router
+    Router --> Services
+    Services --> Repos
+    Repos --> PG
+    Services --> R2
+    Services --> Resend
+    Services --> Paystack
+    Services --> Firebase
+    Paystack -->|Webhook HMAC-SHA512| Router
+```
+
+---
+
+## Auth Flows
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant API
+    participant DB
+    participant Firebase
+
+    Note over App,Firebase: Email / Password flow
+    App->>API: POST /auth/register {email, password, user_type}
+    API->>DB: create user (argon2id hash)
+    API->>App: 201 — sends verification email
+    App->>API: POST /auth/verify-email {token}
+    API->>DB: SHA-256 token match → is_verified=true
+    App->>API: POST /auth/login {username, password}
+    API->>DB: fetch user, verify argon2id/bcrypt
+    API->>App: {access_token, token_type}
+
+    Note over App,Firebase: Firebase Google Sign-in flow
+    App->>Firebase: Google sign-in (client SDK)
+    Firebase->>App: Firebase ID token
+    App->>API: POST /auth/firebase {id_token, user_type}
+    API->>Firebase: verify_id_token()
+    Firebase->>API: {uid, email, name}
+    API->>DB: upsert user (firebase_uid, is_verified=true)
+    API->>App: {access_token, token_type}
+```
+
+---
+
+## Payment Flow (Paystack)
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant API
+    participant Paystack
+
+    App->>API: POST /employer/purchase {package_id}
+    API->>Paystack: POST /transaction/initialize
+    Paystack->>API: {authorization_url, reference}
+    API->>App: {authorization_url, reference}
+
+    App->>Paystack: Open authorization_url (WebView)
+    Paystack->>App: Redirect on completion
+
+    App->>API: POST /employer/confirm-payment {reference}
+    API->>Paystack: GET /transaction/verify/{reference}
+    Paystack->>API: {status: success, amount}
+    API->>App: credits added
+
+    Note over Paystack,API: Async webhook (backup)
+    Paystack->>API: POST /payments/webhook/paystack
+    API->>API: HMAC-SHA512 verify signature
+    API->>API: charge.success → credit employer/trainer
+```
+
+---
+
+## Data Model
+
+```mermaid
+erDiagram
+    User {
+        int id
+        string email
+        string hashed_password
+        string firebase_uid
+        enum user_type
+        bool is_active
+        bool is_verified
+    }
+    Talent {
+        int id
+        int user_id
+        string first_name
+        string last_name
+        string bio
+        string resume_url
+        string profile_image_url
+    }
+    Employer {
+        int id
+        int user_id
+        string company_name
+        int job_credits
+    }
+    Trainer {
+        int id
+        int user_id
+        string name
+        int training_credits
+    }
+    Job {
+        int id
+        int employer_id
+        string title
+        enum status
+        date expires_at
+    }
+    Training {
+        int id
+        int trainer_id
+        string title
+        enum status
+        date expires_at
+    }
+    JobApplication {
+        int id
+        int job_id
+        int talent_id
+        enum status
+    }
+    TrainingApplication {
+        int id
+        int training_id
+        int talent_id
+        enum status
+    }
+    SavedJob {
+        int id
+        int job_id
+        int talent_id
+    }
+    SavedTraining {
+        int id
+        int training_id
+        int talent_id
+    }
+    Payment {
+        int id
+        string reference
+        enum status
+        decimal amount_ngn
+    }
+
+    User ||--o| Talent : "has"
+    User ||--o| Employer : "has"
+    User ||--o| Trainer : "has"
+    Employer ||--o{ Job : "posts"
+    Trainer ||--o{ Training : "posts"
+    Talent ||--o{ JobApplication : "submits"
+    Talent ||--o{ TrainingApplication : "submits"
+    Talent ||--o{ SavedJob : "saves"
+    Talent ||--o{ SavedTraining : "saves"
+    Job ||--o{ JobApplication : "receives"
+    Training ||--o{ TrainingApplication : "receives"
+    Employer ||--o{ Payment : "makes"
+    Trainer ||--o{ Payment : "makes"
+```
+
+---
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | FastAPI + Uvicorn |
+| Database | PostgreSQL 16, SQLAlchemy 2.x, Alembic |
+| Auth | PyJWT (HS256), Argon2id, Firebase Admin SDK |
+| Storage | Cloudflare R2 (boto3 S3-compatible) |
+| Email | Resend SDK |
+| Payments | Paystack (NGN) |
+| Rate limiting | slowapi (200 req/min) |
+| File validation | python-magic (magic bytes), Pillow (EXIF strip) |
+| Testing | pytest + pytest-asyncio + httpx |
+
+---
+
+## Quick start (Docker)
+
+```bash
+cp .env.example .env   # fill in secrets
+docker-compose up --build
+```
+
+API at `http://localhost:8000` — interactive docs at `/docs`.
+
+---
+
+## Local development
+
+**Prerequisites**: Python 3.11+, PostgreSQL 16, `libmagic` (`brew install libmagic` on macOS)
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | `postgresql://user:pass@host:5432/db` |
+| `JWT_SECRET_KEY` | Yes | ≥32 chars, not a known-weak value |
+| `JWT_ALGORITHM` | No | Default `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Default `30` |
+| `RESEND_API_KEY` | Yes (prod) | Resend transactional email key |
+| `FROM_EMAIL` | No | Default `no-reply@climbr.com` |
+| `FROM_NAME` | No | Default `Climbr` |
+| `ADMIN_EMAIL` | No | Contact-form notification recipient |
+| `R2_ACCOUNT_ID` | Yes (uploads) | Cloudflare account ID |
+| `R2_ACCESS_KEY_ID` | Yes (uploads) | R2 access key |
+| `R2_SECRET_ACCESS_KEY` | Yes (uploads) | R2 secret key |
+| `R2_BUCKET_NAME` | Yes (uploads) | R2 bucket |
+| `R2_PUBLIC_URL` | Yes (uploads) | Public base URL for uploaded files |
+| `PAYSTACK_SECRET_KEY` | Yes (payments) | Paystack secret key |
+| `PAYSTACK_WEBHOOK_SECRET` | Yes (payments) | Paystack webhook signing secret |
+| `FIREBASE_CREDENTIALS_JSON` | Yes (Google sign-in) | Service account JSON string |
+| `ENVIRONMENT` | No | `development` or `production` |
+| `ADMIN_PASSWORD` | Yes (prod) | Admin account bootstrap password |
+
+No defaults for secrets — missing required vars cause a fast-fail on startup.
+
+---
+
+## Tests
+
+```bash
+python -m pytest tests/ -v
+```
+
+39 tests, 0 failures. All external services (R2, Resend, Paystack, Firebase) are mocked.
+
+---
+
+## API reference
+
+See [MOBILE_API_CONTRACT.md](MOBILE_API_CONTRACT.md) for the complete endpoint reference.
+
+| Prefix | Auth | Description |
+|--------|------|-------------|
+| `/auth` | Mixed | Login, register, Firebase sign-in, email verify, password reset |
+| `/jobs` | Public | Browse and filter jobs |
+| `/trainings` | Public | Browse and filter trainings |
+| `/talent/*` | talent JWT | Profile, applications, saved jobs/trainings, dashboard |
+| `/employer/*` | employer JWT | Post jobs, manage applicants, Paystack credits |
+| `/trainer/*` | trainer JWT | Post trainings, manage applicants, Paystack credits |
+| `/payments/webhook/paystack` | Paystack sig | Webhook receiver (do not call from app) |
+| `/contact` | Public | Contact form |
+| `/health`, `/version` | Public | Health check, version |
+
+---
+
+## Database migrations
+
+```bash
+alembic upgrade head          # apply all
+alembic downgrade -1          # roll back one
+alembic revision --autogenerate -m "description"   # new migration
+```
+
+Migrations live in `alembic/versions/` (linear chain f001–f008).
+
+---
+
+## Project structure
+
+```
+app/
+├── main.py              # App factory, middleware, rate limiter
+├── config.py            # pydantic-settings, fast-fail on missing secrets
+├── database.py          # SQLAlchemy engine + session
+├── dependencies/auth.py # JWT decode, get_current_user
+├── models/              # SQLAlchemy ORM + Pydantic schemas
+├── repositories/        # BaseRepository[T] + 15 typed repos
+├── routers/             # auth · talent · employer · trainer · admin · public · payments
+└── services/            # auth · storage · email · payment · firebase · verification · contact
+alembic/versions/        # f001–f008 migrations
+tests/                   # 39 tests (pytest + httpx, all services mocked)
+docker-compose.yml
+MOBILE_API_CONTRACT.md
+PROGRESS.md
+openapi.json
+```
