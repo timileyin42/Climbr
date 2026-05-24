@@ -53,55 +53,50 @@ async def purchase_credits(
     db: Session = Depends(get_db),
     current_employer: Employer = Depends(get_current_employer)
 ):
-    """Purchase job posting credits"""
+    """Initialize a Paystack transaction to purchase job posting credits"""
     try:
-        # Get the pricing package
         package = PricingService.get_job_pricing_package_by_id(db, package_id)
         if not package:
             raise HTTPException(status_code=404, detail="Pricing package not found")
-        
         if not package.is_active:
             raise HTTPException(status_code=400, detail="Pricing package is not available")
-        
-        # Create payment intent with Stripe
-        payment_result = await PaymentService.create_payment_intent(
-            amount=package.price,
-            currency=package.currency,
-            customer_email=current_employer.user.email,
+
+        result = await PaymentService.initialize_transaction(
+            amount_ngn=package.price,
+            email=current_employer.user.email,
             metadata={
                 "employer_id": str(current_employer.id),
                 "package_id": str(package.id),
                 "package_name": package.name,
-                "credits": str(package.quantity)
-            }
+                "credits": str(package.quantity),
+                "user_type": "employer",
+            },
         )
-        
-        if not payment_result["success"]:
-            raise HTTPException(status_code=400, detail=f"Payment failed: {payment_result['error']}")
-        
-        # Create payment record
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=f"Payment init failed: {result['error']}")
+
         payment = Payment(
             employer_id=current_employer.id,
             amount=package.price,
-            currency=package.currency,
-            payment_method="stripe",
-            transaction_id=payment_result["payment_id"],
-            status="pending",
+            currency="NGN",
+            payment_method="paystack",
+            transaction_id=result["reference"],
             package_name=package.name,
-            package_quantity=package.quantity
+            package_quantity=package.quantity,
         )
         db.add(payment)
         db.commit()
-        
+
         return {
-            "message": "Payment intent created successfully",
-            "payment_intent_id": payment_result["payment_id"],
-            "client_secret": payment_result["client_secret"],
+            "message": "Transaction initialized",
+            "authorization_url": result["authorization_url"],
+            "access_code": result["access_code"],
+            "reference": result["reference"],
             "amount": package.price,
-            "currency": package.currency,
-            "credits_to_add": package.quantity
+            "currency": "NGN",
+            "credits_to_add": package.quantity,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -110,46 +105,40 @@ async def purchase_credits(
 
 @router.post("/confirm-payment")
 async def confirm_payment(
-    payment_intent_id: str = Body(..., embed=True),
+    reference: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_employer: Employer = Depends(get_current_employer)
 ):
-    """Confirm payment and add credits to employer account"""
+    """Verify a Paystack transaction and credit the employer account"""
     try:
-        # Get payment status from Stripe
-        payment_status = await PaymentService.get_payment_status(payment_intent_id)
-        
-        # Find the payment record
+        result = await PaymentService.verify_transaction(reference)
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=f"Verification failed: {result['error']}")
+
         payment = db.query(Payment).filter(
-            Payment.transaction_id == payment_intent_id,
-            Payment.employer_id == current_employer.id
+            Payment.transaction_id == reference,
+            Payment.employer_id == current_employer.id,
         ).first()
-        
         if not payment:
             raise HTTPException(status_code=404, detail="Payment record not found")
-        
-        if payment_status["status"] == "succeeded":
-            # Update payment status
-            payment.status = "paid"
-            
-            # Add credits to employer account
+
+        if result["status"] == "success":
+            from app.models.database_models import PaymentStatus
+            payment.status = PaymentStatus.SUCCESS
             current_employer.job_credits += payment.package_quantity
-            
             db.commit()
-            
             return {
-                "message": "Payment confirmed and credits added",
+                "message": "Payment verified and credits added",
                 "credits_added": payment.package_quantity,
                 "total_credits": current_employer.job_credits,
-                "payment_status": "succeeded"
+                "payment_status": "success",
             }
-        else:
-            # Update payment status to failed
-            payment.status = "failed"
-            db.commit()
-            
-            raise HTTPException(status_code=400, detail="Payment was not successful")
-            
+
+        from app.models.database_models import PaymentStatus
+        payment.status = PaymentStatus.FAILED
+        db.commit()
+        raise HTTPException(status_code=400, detail=f"Payment status: {result['status']}")
+
     except HTTPException:
         raise
     except Exception as e:
