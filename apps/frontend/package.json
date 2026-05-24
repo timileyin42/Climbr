@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -15,7 +16,6 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@climbr/api-types": "workspace:*",
     "@hookform/resolvers": "^5.4.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
