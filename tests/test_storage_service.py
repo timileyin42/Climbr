@@ -1,7 +1,8 @@
-"""Unit tests for StorageService — mocks boto3, tests magic detection and EXIF stripping."""
+"""Unit tests for StorageService — mocks boto3, tests signature detection and EXIF stripping."""
 import io
+import zipfile
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 from fastapi.datastructures import UploadFile
@@ -23,6 +24,28 @@ class TestMimeDetection:
         from app.services.storage import _detect_mime
         pdf = b"%PDF-1.4 test content"
         assert _detect_mime(pdf) == "application/pdf"
+
+    def test_detect_svg(self):
+        from app.services.storage import _detect_mime
+        svg = b'<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"></svg>'
+        assert _detect_mime(svg) == "image/svg+xml"
+
+    def test_detect_docx(self):
+        from app.services.storage import _detect_mime
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as archive:
+            archive.writestr("[Content_Types].xml", "<Types></Types>")
+            archive.writestr("word/document.xml", "<w:document></w:document>")
+
+        assert (
+            _detect_mime(buf.getvalue())
+            == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    def test_unknown_binary_falls_back_to_octet_stream(self):
+        from app.services.storage import _detect_mime
+        assert _detect_mime(b"not an image") == "application/octet-stream"
 
 
 class TestExifStrip:

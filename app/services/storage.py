@@ -1,10 +1,10 @@
 import io
 import logging
 import uuid
+import zipfile
 from typing import Optional
 
 import boto3
-import magic
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from fastapi import UploadFile, HTTPException, status
@@ -14,7 +14,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# MIME types accepted by the platform (validated via magic bytes)
+# MIME types accepted by the platform (validated via file signatures)
 ALLOWED_IMAGE_TYPES: dict[str, str] = {
     "image/jpeg": "jpg",
     "image/png": "png",
@@ -60,8 +60,44 @@ def _get_r2_client():
 
 
 def _detect_mime(data: bytes) -> str:
-    """Return the MIME type detected from magic bytes (not client Content-Type)."""
-    return magic.from_buffer(data, mime=True)
+    """Return the MIME type detected from file signatures (not client Content-Type)."""
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if len(data) >= 12 and data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return "image/webp"
+    if _looks_like_svg(data):
+        return "image/svg+xml"
+    if data.startswith(b"%PDF-"):
+        return "application/pdf"
+    if data.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return "application/msword"
+    if _looks_like_docx(data):
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    return "application/octet-stream"
+
+
+def _looks_like_svg(data: bytes) -> bool:
+    sample = data[:512].lstrip()
+    return sample.startswith(b"<svg") or (
+        sample.startswith(b"<?xml") and b"<svg" in sample[:256]
+    )
+
+
+def _looks_like_docx(data: bytes) -> bool:
+    if not data.startswith(b"PK"):
+        return False
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            names = set(archive.namelist())
+            return "[Content_Types].xml" in names and any(
+                name.startswith("word/") for name in names
+            )
+    except zipfile.BadZipFile:
+        return False
 
 
 def _strip_exif(data: bytes, mime_type: str) -> bytes:

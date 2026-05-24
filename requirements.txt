@@ -32,7 +32,6 @@ boto3==1.28.38
 
 # ── File handling ─────────────────────────────────────────────────────────────
 Pillow==12.2.0
-python-magic==0.4.27
 
 # ── Payments (Paystack via httpx — no separate SDK needed) ────────────────────
 # httpx listed above handles Paystack REST calls

@@ -210,7 +210,7 @@ erDiagram
 | Email | Resend SDK |
 | Payments | Paystack (NGN) |
 | Rate limiting | slowapi (200 req/min) |
-| File validation | python-magic (magic bytes), Pillow (EXIF strip) |
+| File validation | Built-in file signature checks, Pillow (EXIF strip) |
 | Testing | pytest + pytest-asyncio + httpx |
 
 ---
