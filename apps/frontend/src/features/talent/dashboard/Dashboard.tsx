@@ -1,10 +1,11 @@
-import { FileText, Clock, Star, Bookmark, ArrowRight } from 'lucide-react'
+import { FileText, Clock, Star, Bookmark, ArrowRight, Eye } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { JobCard } from '@/components/cards/JobCard'
 import { JobCardSkeleton, StatCardSkeleton } from '@/components/feedback/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { useTalentDashboard } from '@/lib/api/queries/useTalent'
+import { useMyViewers } from '@/lib/api/queries/useMessages'
 import { useAuthStore } from '@/lib/auth/store'
 
 const statConfig = [
@@ -21,6 +22,7 @@ function today() {
 export function Component() {
   const user      = useAuthStore((s) => s.user)
   const { data, isLoading } = useTalentDashboard()
+  const { data: viewersData } = useMyViewers()
 
   return (
     <div className="space-y-8">
@@ -49,6 +51,39 @@ export function Component() {
             ))
         }
       </div>
+
+      {/* Who viewed my profile */}
+      {viewersData && viewersData.total_views > 0 && (
+        <div className="bg-white border-2 border-[var(--color-border)] rounded-[var(--radius-lg)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--color-brand-cyan-soft)' }}>
+                <Eye className="w-4 h-4" style={{ color: 'var(--color-brand-cyan)' }} />
+              </div>
+              <div>
+                <p className="text-[14px] font-[700] text-[var(--color-text-primary)]">Profile Views</p>
+                <p className="text-[12px] text-[var(--color-text-tertiary)]">{viewersData.total_views} view{viewersData.total_views !== 1 ? 's' : ''} total</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {viewersData.viewers.slice(0, 6).map((v) => {
+              const initials = v.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+              return (
+                <div key={v.id} className="flex items-center gap-2 bg-[var(--color-bg-secondary)] rounded-[var(--radius-md)] px-3 py-2">
+                  <div className="w-7 h-7 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[11px] font-[700] text-[var(--color-brand-orange)] shrink-0">
+                    {initials || '?'}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-[600] text-[var(--color-text-primary)] leading-none">{v.name}</p>
+                    <p className="text-[11px] text-[var(--color-text-tertiary)] capitalize mt-0.5">{v.role}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Profile completion */}
       {!isLoading && data && data.profile_completion < 100 && (

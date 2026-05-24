@@ -45,6 +45,9 @@ const TrainerApplicants      = lazy(() => import('@/features/trainer/trainings/T
 const TrainerCredits         = lazy(() => import('@/features/trainer/credits/Credits').then((m) => ({ default: m.Component })))
 const TrainerSettings        = lazy(() => import('@/features/trainer/settings/Settings').then((m) => ({ default: m.Component })))
 
+// Messages (shared across roles)
+const MessagesPage = lazy(() => import('@/features/messages/Messages').then((m) => ({ default: m.Component })))
+
 // Admin
 const AdminDashboardPage = lazy(() => import('@/features/admin/dashboard/Dashboard').then((m) => ({ default: m.Component })))
 const AdminUsers         = lazy(() => import('@/features/admin/users/Users').then((m) => ({ default: m.Component })))
@@ -126,6 +129,7 @@ export const router = createBrowserRouter([
       { path: '/saved',        element: <TalentOnly><Saved /></TalentOnly> },
       { path: '/profile',      element: <TalentOnly><Profile /></TalentOnly> },
       { path: '/settings',     element: <RequireAuth><TalentSettings /></RequireAuth> },
+      { path: '/messages',     element: <TalentOnly><MessagesPage /></TalentOnly> },
 
       // Employer
       { path: '/employer/dashboard',              element: <EmployerOnly><EmployerDashboard /></EmployerOnly> },
@@ -133,6 +137,7 @@ export const router = createBrowserRouter([
       { path: '/employer/jobs/new',               element: <EmployerOnly><EmployerPostJob /></EmployerOnly> },
       { path: '/employer/jobs/:id',               element: <EmployerOnly><Placeholder name="Job Detail (Employer)" /></EmployerOnly> },
       { path: '/employer/jobs/:id/applicants',    element: <EmployerOnly><EmployerJobApplicants /></EmployerOnly> },
+      { path: '/employer/messages',               element: <EmployerOnly><MessagesPage /></EmployerOnly> },
       { path: '/employer/credits',                element: <EmployerOnly><EmployerCredits /></EmployerOnly> },
       { path: '/employer/settings',               element: <EmployerOnly><EmployerSettings /></EmployerOnly> },
 
@@ -141,6 +146,7 @@ export const router = createBrowserRouter([
       { path: '/trainer/trainings',                        element: <TrainerOnly><TrainerTrainings /></TrainerOnly> },
       { path: '/trainer/trainings/new',                    element: <TrainerOnly><TrainerPostTraining /></TrainerOnly> },
       { path: '/trainer/trainings/:id/applicants',         element: <TrainerOnly><TrainerApplicants /></TrainerOnly> },
+      { path: '/trainer/messages',                         element: <TrainerOnly><MessagesPage /></TrainerOnly> },
       { path: '/trainer/credits',                          element: <TrainerOnly><TrainerCredits /></TrainerOnly> },
       { path: '/trainer/settings',                         element: <TrainerOnly><TrainerSettings /></TrainerOnly> },
 

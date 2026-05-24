@@ -307,14 +307,29 @@ async def get_training_applicants(
         # Get applications for this training
         skip = (page - 1) * limit
         applications = TrainingService.get_training_applications(db, training_id, skip, limit)
-        
+
+        serialized = [
+            {
+                "id": a.id,
+                "talent_id": a.talent_id,
+                "user_id": a.talent.user_id if a.talent else None,
+                "first_name": a.talent.first_name if a.talent else "",
+                "last_name": a.talent.last_name if a.talent else "",
+                "email": a.talent.user.email if a.talent and a.talent.user else "",
+                "status": a.status.value if hasattr(a.status, "value") else a.status,
+                "applied_at": a.created_at.isoformat() if a.created_at else None,
+                "profile": {},
+            }
+            for a in applications
+        ]
+
         return {
             "training_id": training_id,
             "training_title": training.title,
-            "applications": applications,
+            "applications": serialized,
             "page": page,
             "limit": limit,
-            "total_applications": len(applications)
+            "total_applications": len(serialized)
         }
     except HTTPException:
         raise

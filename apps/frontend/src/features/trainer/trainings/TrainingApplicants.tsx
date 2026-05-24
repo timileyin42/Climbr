@@ -1,10 +1,11 @@
-import { useParams, Link } from 'react-router-dom'
-import { ChevronLeft, Users } from 'lucide-react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { ChevronLeft, Users, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/feedback/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { useTrainingApplicants, useTrainerApplicantAction } from '@/lib/api/queries/useTrainer'
+import { useStartConversation } from '@/lib/api/queries/useMessages'
 import type { Applicant } from '@/lib/api/endpoints/employer'
 import { cn } from '@/lib/utils'
 
@@ -19,10 +20,11 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function MobileCard({ applicant, onAction, loading }: {
+function MobileCard({ applicant, onAction, onMessage, loading }: {
   applicant: Applicant
-  onAction: (id: number, action: 'accept' | 'shortlist' | 'reject') => void
-  loading: boolean
+  onAction:  (id: number, action: 'accept' | 'shortlist' | 'reject') => void
+  onMessage: (userId: number, name: string) => void
+  loading:   boolean
 }) {
   const initials = `${applicant.first_name[0] ?? '?'}${applicant.last_name[0] ?? '?'}`
   return (
@@ -47,6 +49,12 @@ function MobileCard({ applicant, onAction, loading }: {
           onClick={() => onAction(applicant.id, 'shortlist')} disabled={loading}>Shortlist</Button>
         <Button size="sm" variant="outline"
           onClick={() => onAction(applicant.id, 'reject')} disabled={loading}>Reject</Button>
+        {applicant.user_id && (
+          <Button size="sm" variant="outline"
+            onClick={() => onMessage(applicant.user_id!, `${applicant.first_name} ${applicant.last_name}`)}>
+            <MessageSquare className="w-3.5 h-3.5 mr-1" />Chat
+          </Button>
+        )}
       </div>
     </div>
   )
@@ -55,13 +63,22 @@ function MobileCard({ applicant, onAction, loading }: {
 export function Component() {
   const { id }       = useParams<{ id: string }>()
   const trainingId   = Number(id)
+  const navigate     = useNavigate()
   const { data, isLoading } = useTrainingApplicants(trainingId)
-  const action = useTrainerApplicantAction(trainingId)
+  const action     = useTrainerApplicantAction(trainingId)
+  const startConv  = useStartConversation()
 
   const applicants = data?.applications ?? []
 
   function act(applicantId: number, a: 'accept' | 'shortlist' | 'reject') {
     action.mutate({ applicantId, action: a })
+  }
+
+  function message(userId: number, name: string) {
+    startConv.mutate(
+      { userId, message: `Hi ${name.split(' ')[0]}, I came across your application and wanted to connect.` },
+      { onSuccess: (conv) => navigate(`/trainer/messages?c=${conv.id}`) },
+    )
   }
 
   return (
@@ -89,7 +106,7 @@ export function Component() {
           {/* Mobile */}
           <div className="md:hidden space-y-3">
             {applicants.map((a) => (
-              <MobileCard key={a.id} applicant={a} onAction={act} loading={action.isPending} />
+              <MobileCard key={a.id} applicant={a} onAction={act} onMessage={message} loading={action.isPending} />
             ))}
           </div>
 
@@ -119,13 +136,19 @@ export function Component() {
                     <td className="px-5 py-4"><Badge variant={statusVariant(a.status)}>{a.status}</Badge></td>
                     <td className="px-5 py-4 text-[13px] text-[var(--color-text-tertiary)]">{formatDate(a.applied_at)}</td>
                     <td className="px-5 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button size="sm" style={{ background: 'var(--color-brand-cyan)' }}
                           onClick={() => act(a.id, 'accept')} disabled={action.isPending}>Accept</Button>
                         <Button size="sm" style={{ background: 'var(--color-brand-yellow)', color: 'var(--color-brand-navy)' }}
                           onClick={() => act(a.id, 'shortlist')} disabled={action.isPending}>Shortlist</Button>
                         <Button size="sm" variant="outline"
                           onClick={() => act(a.id, 'reject')} disabled={action.isPending}>Reject</Button>
+                        {a.user_id && (
+                          <Button size="sm" variant="outline" disabled={startConv.isPending}
+                            onClick={() => message(a.user_id!, `${a.first_name} ${a.last_name}`)}>
+                            <MessageSquare className="w-3.5 h-3.5 mr-1" />Chat
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

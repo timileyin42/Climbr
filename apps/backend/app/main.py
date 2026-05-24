@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.config import settings
-from app.routers import talent, employer, trainer, admin, public, auth, payments
+from app.routers import talent, employer, trainer, admin, public, auth, payments, messages, profile_views
 from app.setup import setup_directories
 from app.services.archiving import ArchivingService
 
@@ -107,6 +107,8 @@ app.include_router(employer.router, prefix="/employer", tags=["employer"])
 app.include_router(trainer.router, prefix="/trainer", tags=["trainer"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
+app.include_router(messages.router, prefix="/messages", tags=["messages"])
+app.include_router(profile_views.router, tags=["profile-views"])
 
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────

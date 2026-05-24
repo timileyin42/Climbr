@@ -129,6 +129,9 @@ class User(Base):
     admin = relationship("Admin", back_populates="user", uselist=False)
     notification_settings = relationship("NotificationSettings", back_populates="user", uselist=False)
     notifications = relationship("Notification", back_populates="user", lazy="dynamic")
+    sent_messages = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender", lazy="dynamic")
+    profile_views_received = relationship("ProfileView", foreign_keys="ProfileView.viewed_user_id", back_populates="viewed_user", lazy="dynamic")
+    profile_views_given = relationship("ProfileView", foreign_keys="ProfileView.viewer_id", back_populates="viewer", lazy="dynamic")
 
 # ---------------------------------------------------------------------------
 # Talent-related models
@@ -602,3 +605,56 @@ class DeviceToken(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     talent = relationship("Talent", back_populates="device_tokens")
+
+
+# ---------------------------------------------------------------------------
+# Messaging — Conversation + Message
+# ---------------------------------------------------------------------------
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    participant_1_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    participant_2_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    last_message_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("participant_1_id", "participant_2_id", name="uq_conversation_participants"),
+    )
+
+    participant_1 = relationship("User", foreign_keys=[participant_1_id])
+    participant_2 = relationship("User", foreign_keys=[participant_2_id])
+    messages = relationship("Message", back_populates="conversation",
+                            order_by="Message.created_at", lazy="dynamic")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    conversation = relationship("Conversation", back_populates="messages")
+    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
+
+
+# ---------------------------------------------------------------------------
+# ProfileView — who viewed whose profile
+# ---------------------------------------------------------------------------
+
+class ProfileView(Base):
+    __tablename__ = "profile_views"
+
+    id = Column(Integer, primary_key=True, index=True)
+    viewer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    viewed_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    viewed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    viewer = relationship("User", foreign_keys=[viewer_id], back_populates="profile_views_given")
+    viewed_user = relationship("User", foreign_keys=[viewed_user_id], back_populates="profile_views_received")

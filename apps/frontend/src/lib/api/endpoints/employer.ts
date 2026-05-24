@@ -6,7 +6,7 @@ import type { Job, JobDetail } from './jobs'
 export interface PricingPackage { id: number; plan: string; price: number; quantity: number; currency: string; description: string }
 export interface EmployerInfo   { message: string; benefits: string[]; pricing: PricingPackage[] }
 export interface Applicant {
-  id: number; talent_id: number; first_name: string; last_name: string
+  id: number; talent_id: number; user_id: number | null; first_name: string; last_name: string
   email: string; status: string; applied_at: string; profile: Record<string, unknown>
 }
 export interface ApplicantsResponse {

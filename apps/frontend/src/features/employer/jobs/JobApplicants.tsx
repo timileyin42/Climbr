@@ -1,17 +1,18 @@
-import { useParams, Link } from 'react-router-dom'
-import { ChevronLeft, Users } from 'lucide-react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { ChevronLeft, Users, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/feedback/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { useJobApplicants, useApplicantAction } from '@/lib/api/queries/useEmployer'
+import { useStartConversation } from '@/lib/api/queries/useMessages'
 import type { Applicant } from '@/lib/api/endpoints/employer'
 import { cn } from '@/lib/utils'
 
 function statusVariant(status: string): 'accepted' | 'shortlisted' | 'rejected' | 'chip' {
-  if (status === 'accepted')   return 'accepted'
+  if (status === 'accepted')    return 'accepted'
   if (status === 'shortlisted') return 'shortlisted'
-  if (status === 'rejected')   return 'rejected'
+  if (status === 'rejected')    return 'rejected'
   return 'chip'
 }
 
@@ -19,54 +20,65 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function ApplicantRow({ applicant, onAction, loading }: {
+function ApplicantRow({ applicant, onAction, onMessage, loading }: {
   applicant: Applicant
-  onAction: (id: number, action: 'accept' | 'shortlist' | 'reject') => void
-  loading: boolean
+  onAction:  (id: number, action: 'accept' | 'shortlist' | 'reject') => void
+  onMessage: (userId: number, name: string) => void
+  loading:   boolean
 }) {
   const initials = `${applicant.first_name[0] ?? '?'}${applicant.last_name[0] ?? '?'}`
   return (
-    <>
-      {/* Mobile card */}
-      <div className="md:hidden bg-white border-2 border-[var(--color-border)] rounded-[var(--radius-lg)] p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[13px] font-[700] text-[var(--color-brand-orange)] shrink-0">
-              {initials}
-            </div>
-            <div>
-              <p className="text-[14px] font-[700] text-[var(--color-text-primary)]">{applicant.first_name} {applicant.last_name}</p>
-              <p className="text-[12px] text-[var(--color-text-tertiary)]">{applicant.email}</p>
-            </div>
+    <div className="md:hidden bg-white border-2 border-[var(--color-border)] rounded-[var(--radius-lg)] p-4">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center text-[13px] font-[700] text-[var(--color-brand-orange)] shrink-0">
+            {initials}
           </div>
-          <Badge variant={statusVariant(applicant.status)}>{applicant.status}</Badge>
+          <div>
+            <p className="text-[14px] font-[700] text-[var(--color-text-primary)]">{applicant.first_name} {applicant.last_name}</p>
+            <p className="text-[12px] text-[var(--color-text-tertiary)]">{applicant.email}</p>
+          </div>
         </div>
-        <p className="text-[12px] text-[var(--color-text-tertiary)] mb-3">Applied {formatDate(applicant.applied_at)}</p>
-        <div className="flex gap-2 flex-wrap">
-          <Button size="sm" style={{ background: 'var(--color-brand-cyan)' }}
-            onClick={() => onAction(applicant.id, 'accept')} disabled={loading}>Accept</Button>
-          <Button size="sm" style={{ background: 'var(--color-brand-yellow)', color: 'var(--color-brand-navy)' }}
-            onClick={() => onAction(applicant.id, 'shortlist')} disabled={loading}>Shortlist</Button>
-          <Button size="sm" variant="outline"
-            onClick={() => onAction(applicant.id, 'reject')} disabled={loading}>Reject</Button>
-        </div>
+        <Badge variant={statusVariant(applicant.status)}>{applicant.status}</Badge>
       </div>
-
-      {/* Desktop row (rendered inside tbody by parent) */}
-    </>
+      <p className="text-[12px] text-[var(--color-text-tertiary)] mb-3">Applied {formatDate(applicant.applied_at)}</p>
+      <div className="flex gap-2 flex-wrap">
+        <Button size="sm" style={{ background: 'var(--color-brand-cyan)' }}
+          onClick={() => onAction(applicant.id, 'accept')} disabled={loading}>Accept</Button>
+        <Button size="sm" style={{ background: 'var(--color-brand-yellow)', color: 'var(--color-brand-navy)' }}
+          onClick={() => onAction(applicant.id, 'shortlist')} disabled={loading}>Shortlist</Button>
+        <Button size="sm" variant="outline"
+          onClick={() => onAction(applicant.id, 'reject')} disabled={loading}>Reject</Button>
+        {applicant.user_id && (
+          <Button size="sm" variant="outline"
+            onClick={() => onMessage(applicant.user_id!, `${applicant.first_name} ${applicant.last_name}`)}>
+            <MessageSquare className="w-3.5 h-3.5 mr-1" />Chat
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
 export function Component() {
-  const { id } = useParams<{ id: string }>()
-  const jobId  = Number(id)
+  const { id }   = useParams<{ id: string }>()
+  const jobId    = Number(id)
+  const navigate = useNavigate()
   const { data, isLoading } = useJobApplicants(jobId)
-  const action = useApplicantAction(jobId)
+  const action   = useApplicantAction(jobId)
+  const startConv = useStartConversation()
 
   const applicants = data?.applications ?? []
 
   function act(applicantId: number, a: 'accept' | 'shortlist' | 'reject') {
     action.mutate({ applicantId, action: a })
+  }
+
+  function message(userId: number, name: string) {
+    startConv.mutate(
+      { userId, message: `Hi ${name.split(' ')[0]}, I came across your application and wanted to connect.` },
+      { onSuccess: (conv) => navigate(`/employer/messages?c=${conv.id}`) },
+    )
   }
 
   return (
@@ -94,7 +106,7 @@ export function Component() {
           {/* Mobile */}
           <div className="md:hidden space-y-3">
             {applicants.map((a) => (
-              <ApplicantRow key={a.id} applicant={a} onAction={act} loading={action.isPending} />
+              <ApplicantRow key={a.id} applicant={a} onAction={act} onMessage={message} loading={action.isPending} />
             ))}
           </div>
 
@@ -123,13 +135,19 @@ export function Component() {
                     <td className="px-5 py-4"><Badge variant={statusVariant(a.status)}>{a.status}</Badge></td>
                     <td className="px-5 py-4 text-[13px] text-[var(--color-text-tertiary)]">{formatDate(a.applied_at)}</td>
                     <td className="px-5 py-4">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button size="sm" style={{ background: 'var(--color-brand-cyan)' }}
                           onClick={() => act(a.id, 'accept')} disabled={action.isPending}>Accept</Button>
                         <Button size="sm" style={{ background: 'var(--color-brand-yellow)', color: 'var(--color-brand-navy)' }}
                           onClick={() => act(a.id, 'shortlist')} disabled={action.isPending}>Shortlist</Button>
                         <Button size="sm" variant="outline"
                           onClick={() => act(a.id, 'reject')} disabled={action.isPending}>Reject</Button>
+                        {a.user_id && (
+                          <Button size="sm" variant="outline" disabled={startConv.isPending}
+                            onClick={() => message(a.user_id!, `${a.first_name} ${a.last_name}`)}>
+                            <MessageSquare className="w-3.5 h-3.5 mr-1" />Chat
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
