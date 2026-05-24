@@ -1,174 +1,201 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status, Body
-from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 
 from app.database import get_db
-from app.models.user_models import Token, UserCreate, UserOut
 from app.models.database_models import User, UserType
 from app.services.auth import AuthService
 from app.services.verification import VerificationService
 from app.services.firebase import verify_firebase_id_token
 from app.dependencies.auth import get_current_user
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
-# Initialize services
 auth_service = AuthService()
 
-@router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """
-    Standard login endpoint that authenticates a user with username/email and password.
-    Returns a JWT token upon successful authentication.
-    """
-    user = auth_service.authenticate_user(db, form_data.username, form_data.password)
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _user_names(user: User) -> tuple[str, str]:
+    """Return (first_name, last_name) from the appropriate profile relation."""
+    if user.user_type == UserType.TALENT and user.talent:
+        return user.talent.first_name or "", user.talent.last_name or ""
+    if user.user_type == UserType.EMPLOYER and user.employer:
+        parts = (user.employer.contact_name or "").split(" ", 1)
+        return parts[0], parts[1] if len(parts) > 1 else ""
+    if user.user_type == UserType.TRAINER and user.trainer:
+        return user.trainer.first_name or "", user.trainer.last_name or ""
+    if user.user_type == UserType.ADMIN and user.admin:
+        return user.admin.first_name or "", user.admin.last_name or ""
+    return "", ""
+
+
+def _auth_response(user: User) -> dict:
+    """Build the full auth response the frontend expects."""
+    token_data = auth_service.create_user_token(user)
+    first_name, last_name = _user_names(user)
+    return {
+        **token_data,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "role": user.user_type.value,
+            "is_verified": user.is_verified,
+        },
+    }
+
+
+# ── Login ──────────────────────────────────────────────────────────────────────
+
+class LoginPayload(BaseModel):
+    email: str
+    password: str
+
+
+@router.post("/login")
+async def login(credentials: LoginPayload, db: Session = Depends(get_db)):
+    user = auth_service.authenticate_user(db, credentials.email, credentials.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Check if user is verified
     if not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Email not verified. Please verify your email before logging in."
+            detail="Email not verified. Please verify your email before logging in.",
         )
-        
-    # Generate access token
-    return auth_service.create_user_token(user)
+    return _auth_response(user)
+
+
+# ── Register ───────────────────────────────────────────────────────────────────
+
+# Fields that belong to the User row, not the profile — must be stripped before
+# passing to create_talent / create_employer / create_trainer.
+_USER_LEVEL_FIELDS = {"email", "password", "role", "user_type"}
+
+# Talent and Trainer share first_name/last_name columns.
+# Employer uses contact_name — we convert below.
+_EMPLOYER_ONLY_FIELDS = {"company_name", "contact_name", "phone", "website",
+                          "industry", "company_size", "location", "description"}
+
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: Dict[str, Any] = Body(...),
     request: Request = None,
     background_tasks: BackgroundTasks = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    Register a new user account.
-    """
-    # Extract required fields
     email = user_data.get("email")
     password = user_data.get("password")
-    user_type = user_data.get("user_type", UserType.TALENT)  # Default to talent
-    
-    # Validate required fields
+    role_str = user_data.get("role") or user_data.get("user_type", "talent")
+
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password are required")
-    
-    # Check if user already exists
-    existing_user = auth_service.get_user_by_email(db, email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
+
     try:
-        # Create user based on user type
+        user_type = UserType(role_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid role: {role_str}")
+
+    if auth_service.get_user_by_email(db, email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Strip user-level fields so only profile columns remain
+    profile = {k: v for k, v in user_data.items() if k not in _USER_LEVEL_FIELDS}
+
+    try:
         if user_type == UserType.TALENT:
-            user = auth_service.create_talent(db, email, password, user_data)
+            obj = auth_service.create_talent(db, email, password, profile)
+            user = obj.user
+
         elif user_type == UserType.EMPLOYER:
-            user = auth_service.create_employer(db, email, password, user_data)
+            # Employer has contact_name, not first_name/last_name
+            if "first_name" in profile or "last_name" in profile:
+                profile["contact_name"] = (
+                    f"{profile.pop('first_name', '')} {profile.pop('last_name', '')}".strip()
+                )
+            profile.setdefault("company_name", profile.get("contact_name", email.split("@")[0]))
+            profile.setdefault("industry", "Other")
+            profile.setdefault("location", "")
+            obj = auth_service.create_employer(db, email, password, profile)
+            user = obj.user
+
         elif user_type == UserType.TRAINER:
-            user = auth_service.create_trainer(db, email, password, user_data)
+            profile.setdefault("provider_name", f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip() or email.split("@")[0])
+            obj = auth_service.create_trainer(db, email, password, profile)
+            user = obj.user
+
         else:
-            raise HTTPException(status_code=400, detail="Invalid user type")
-        
-        # Get base URL for verification link
-        base_url = ""
-        if request:
-            base_url = str(request.base_url)
-        
+            raise HTTPException(status_code=400, detail="Invalid role")
+
         # Send verification email in background
-        if background_tasks and base_url:
+        if background_tasks and request:
+            base_url = str(request.base_url)
             await VerificationService.send_verification_email(db, user, base_url, background_tasks)
-        
-        return {"message": "User registered successfully. Please check your email to verify your account."}
+
+        return _auth_response(user)
+
+    except HTTPException:
+        raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
+# ── Email verification ─────────────────────────────────────────────────────────
+
 @router.post("/verify-email")
 async def verify_email(token: str, db: Session = Depends(get_db)):
-    """
-    Verify a user's email address using the provided token.
-    """
     success, message = await VerificationService.verify_email(db, token)
-    
     if not success:
         raise HTTPException(status_code=400, detail=message)
-        
     return {"message": message}
+
 
 @router.post("/resend-verification")
 async def resend_verification_email(
-    email: str, 
+    email: str,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    Resend a verification email to a user.
-    """
-    # Check if user exists
     user = auth_service.get_user_by_email(db, email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
-    # Check if user is already verified
     if user.is_verified:
         return {"message": "Email is already verified"}
-        
-    # Get base URL for verification link
     base_url = str(request.base_url)
-        
-    # Send verification email
     success, message = await VerificationService.send_verification_email(db, user, base_url)
-    
     if not success:
         raise HTTPException(status_code=500, detail=message)
-        
     return {"message": "Verification email sent successfully"}
 
+
+# ── Password reset ─────────────────────────────────────────────────────────────
+
 @router.post("/forgot-password")
-async def forgot_password(
-    email: str,
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """
-    Send a password reset email to a user.
-    """
-    # Check if user exists
+async def forgot_password(email: str, request: Request, db: Session = Depends(get_db)):
     user = auth_service.get_user_by_email(db, email)
-    if not user:
-        # Don't reveal that the user doesn't exist for security reasons
-        return {"message": "If the email exists, a password reset link has been sent"}
-        
-    # Get base URL for reset link
-    base_url = str(request.base_url)
-        
-    # Send password reset email
-    success, message = await VerificationService.send_password_reset_email(db, user, base_url)
-    
-    # Always return success for security reasons
+    if user:
+        base_url = str(request.base_url)
+        await VerificationService.send_password_reset_email(db, user, base_url)
     return {"message": "If the email exists, a password reset link has been sent"}
 
+
 @router.post("/reset-password")
-async def reset_password(
-    token: str,
-    new_password: str,
-    db: Session = Depends(get_db)
-):
-    """
-    Reset a user's password using a valid reset token.
-    """
+async def reset_password(token: str, new_password: str, db: Session = Depends(get_db)):
     success, message = await VerificationService.reset_password(db, token, new_password, auth_service)
-    
     if not success:
         raise HTTPException(status_code=400, detail=message)
-        
     return {"message": message}
+
+
+# ── Firebase / Google sign-in ──────────────────────────────────────────────────
 
 @router.post("/firebase")
 async def firebase_sign_in(
@@ -177,82 +204,64 @@ async def firebase_sign_in(
     user_data: Optional[Dict[str, Any]] = Body(None),
     db: Session = Depends(get_db),
 ):
-    """
-    Authenticate (or register) a user with a Firebase ID token.
-
-    The mobile client signs in via Google through Firebase, then sends the
-    resulting ID token here. We verify it server-side using the Firebase Admin SDK.
-
-    Flow:
-      1. Verify token → get uid + email + display_name
-      2. If user exists (by firebase_uid or email) → return JWT
-      3. Else create a new account of the requested user_type → return JWT
-    """
     claims = await verify_firebase_id_token(id_token)
     if not claims:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired Firebase ID token",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired Firebase ID token")
 
     firebase_uid: str = claims["uid"]
     email: str = claims.get("email", "")
     display_name: str = claims.get("name", "")
 
     if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Firebase token does not include an email address",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Firebase token does not include an email address")
 
-    # Look up existing user by firebase_uid first, then email
     user: Optional[User] = (
         db.query(User).filter(User.firebase_uid == firebase_uid).first()
         or db.query(User).filter(User.email == email).first()
     )
 
     if user:
-        # Sync firebase_uid if this is a first-time Firebase login for an existing account
         if not user.firebase_uid:
             user.firebase_uid = firebase_uid
             db.commit()
-        return auth_service.create_user_token(user)
+        return _auth_response(user)
 
-    # ── New user — create account ────────────────────────────────────────────
-    # Parse name: split display_name into first/last
+    # New user
     name_parts = display_name.split(" ", 1)
     first_name = name_parts[0] or "User"
     last_name = name_parts[1] if len(name_parts) > 1 else ""
 
-    # Base profile data; caller may supply extra fields via user_data
-    profile = user_data or {}
+    profile = {**(user_data or {})}
     profile.setdefault("first_name", first_name)
     profile.setdefault("last_name", last_name)
-    profile.setdefault("is_verified", True)   # Google has already verified the email
 
     import secrets as _secrets
-    # Random password — user can't log in with password anyway for Firebase accounts
     random_password = _secrets.token_hex(24)
 
     try:
         if user_type == UserType.TALENT:
-            new_user_obj = auth_service.create_talent(db, email, random_password, profile)
-            created_user = new_user_obj.user
+            obj = auth_service.create_talent(db, email, random_password, profile)
+            created_user = obj.user
         elif user_type == UserType.EMPLOYER:
-            new_user_obj = auth_service.create_employer(db, email, random_password, profile)
-            created_user = new_user_obj.user
+            if "first_name" in profile or "last_name" in profile:
+                profile["contact_name"] = f"{profile.pop('first_name', '')} {profile.pop('last_name', '')}".strip()
+            profile.setdefault("company_name", profile.get("contact_name", email.split("@")[0]))
+            profile.setdefault("industry", "Other")
+            profile.setdefault("location", "")
+            obj = auth_service.create_employer(db, email, random_password, profile)
+            created_user = obj.user
         elif user_type == UserType.TRAINER:
-            new_user_obj = auth_service.create_trainer(db, email, random_password, profile)
-            created_user = new_user_obj.user
+            profile.setdefault("provider_name", f"{first_name} {last_name}".strip() or email.split("@")[0])
+            obj = auth_service.create_trainer(db, email, random_password, profile)
+            created_user = obj.user
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user_type")
 
-        # Stamp firebase_uid and mark verified
         created_user.firebase_uid = firebase_uid
         created_user.is_verified = True
         db.commit()
 
-        return auth_service.create_user_token(created_user)
+        return _auth_response(created_user)
 
     except HTTPException:
         raise
@@ -260,13 +269,18 @@ async def firebase_sign_in(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Account creation failed: {exc}") from exc
 
+
+# ── Me ─────────────────────────────────────────────────────────────────────────
+
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
-    """Return the authenticated user's base profile."""
+    first_name, last_name = _user_names(current_user)
     return {
         "id": current_user.id,
         "email": current_user.email,
-        "user_type": current_user.user_type.value,
+        "first_name": first_name,
+        "last_name": last_name,
+        "role": current_user.user_type.value,
         "is_active": current_user.is_active,
         "is_verified": current_user.is_verified,
         "created_at": current_user.created_at,
