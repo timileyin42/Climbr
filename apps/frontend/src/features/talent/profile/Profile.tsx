@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Check, X } from 'lucide-react'
+import { Plus, Pencil } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,7 +12,6 @@ import { talentApi, type WorkExperience, type Education } from '@/lib/api/endpoi
 import { useQueryClient } from '@tanstack/react-query'
 import { talentKeys } from '@/lib/api/queries/useTalent'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 
 // ── Bio edit ─────────────────────────────────────────────────────────────────
 

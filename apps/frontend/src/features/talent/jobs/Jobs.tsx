@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { JobCard } from '@/components/cards/JobCard'
 import { JobCardSkeleton } from '@/components/feedback/Skeleton'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { useJobs, useRecommendedJobs } from '@/lib/api/queries/useJobs'
+import { useJobs } from '@/lib/api/queries/useJobs'
 import { useSavedJobs, useSaveJob, useUnsaveJob } from '@/lib/api/queries/useTalent'
 import { useAuthStore } from '@/lib/auth/store'
 

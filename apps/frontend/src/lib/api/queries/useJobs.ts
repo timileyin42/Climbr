@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { jobsApi, type JobFilters, type TrainingFilters } from '@/lib/api/endpoints/jobs'
 
 export const jobKeys = {

@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Briefcase, GraduationCap, FileText,
-  Bookmark, User, Settings, Users, BarChart3, CreditCard,
+  Bookmark, Settings, Users, BarChart3, CreditCard,
   MessageSquare, ShieldCheck, PenSquare, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'

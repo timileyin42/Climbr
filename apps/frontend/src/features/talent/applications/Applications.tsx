@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { FileText, Trash2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Skeleton } from '@/components/feedback/Skeleton'
 import { useApplications, useRemoveApplication } from '@/lib/api/queries/useTalent'
