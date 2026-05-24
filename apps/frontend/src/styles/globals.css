@@ -1,0 +1,94 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+/* ── Climbr Design Tokens ─────────────────────────────────────────────────── */
+@theme {
+  /* Brand */
+  --color-brand-cyan:        #0CC0DF;
+  --color-brand-cyan-dark:   #09A6C2;
+  --color-brand-cyan-soft:   #E6F9FC;
+  --color-brand-pink:        #EC4899;
+  --color-brand-hot-pink:    #FF3D7F;
+  --color-brand-orange:      #FF8A3D;
+  --color-brand-orange-soft: #FFE8D6;
+  --color-brand-yellow:      #FFC93C;
+  --color-brand-navy:        #0F1A1F;
+
+  /* Light mode neutrals */
+  --color-bg-primary:     #FFFFFF;
+  --color-bg-secondary:   #F7F8FA;
+  --color-bg-tertiary:    #F1F3F5;
+  --color-border:         #E5E7EB;
+  --color-border-strong:  #D1D5DB;
+  --color-text-primary:   #0F1A1F;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary:  #9CA3AF;
+
+  /* Dark mode neutrals */
+  --color-dark-bg-primary:    #0B1014;
+  --color-dark-bg-secondary:  #12181D;
+  --color-dark-bg-tertiary:   #1A2128;
+  --color-dark-border:        #232C35;
+  --color-dark-text-primary:  #F5F7FA;
+  --color-dark-text-secondary:#A0AAB4;
+
+  /* Status */
+  --color-status-in-review:        #FFA63D;
+  --color-status-in-review-bg:     #FFF1DE;
+  --color-status-accepted:         #1FBE6E;
+  --color-status-accepted-bg:      #DFF7E9;
+  --color-status-shortlisted:      #7C5CFF;
+  --color-status-shortlisted-bg:   #EBE5FF;
+  --color-status-pending:          #0CC0DF;
+  --color-status-pending-bg:       #E6F9FC;
+  --color-status-rejected:         #E5484D;
+  --color-status-rejected-bg:      #FCE4E6;
+
+  /* Spacing scale */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-7: 32px;
+  --spacing-8: 40px;
+  --spacing-9: 48px;
+  --spacing-10: 64px;
+
+  /* Border radii */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 28px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-card:   0 2px 12px rgba(15, 26, 31, 0.06);
+  --shadow-active: 0 8px 24px rgba(15, 26, 31, 0.12);
+  --shadow-hero:   0 16px 40px rgba(0, 0, 0, 0.08);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.dark {
+    color: var(--color-dark-text-primary);
+    background-color: var(--color-dark-bg-primary);
+  }
+}

@@ -28,3 +28,26 @@ climbr-4e120-firebase-adminsdk-fbsvc-cbd24ded60.json
 GoogleService-Info.plist
 /docs
 phase3_web.md
+node_modules/
+**/node_modules/
+
+# pnpm
+pnpm-lock.yaml
+
+# Build output
+dist/
+build/
+.vite/
+
+# Frontend env
+apps/frontend/.env
+apps/frontend/.env.local
+apps/frontend/.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
