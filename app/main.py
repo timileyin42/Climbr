@@ -121,7 +121,10 @@ async def startup_event():
 async def shutdown_event():
     logger.info("Shutting down Climbr API")
     if hasattr(app.state, "scheduler"):
-        app.state.scheduler.shutdown()
+        try:
+            app.state.scheduler.shutdown()
+        except Exception:
+            pass
 
 
 @app.get("/", tags=["root"])

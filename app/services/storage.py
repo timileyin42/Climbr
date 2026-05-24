@@ -71,7 +71,7 @@ def _strip_exif(data: bytes, mime_type: str) -> bytes:
     try:
         with Image.open(io.BytesIO(data)) as img:
             clean = Image.new(img.mode, img.size)
-            clean.putdata(list(img.getdata()))
+            clean.putdata(list(img.getdata()))  # type: ignore[arg-type]
             buf = io.BytesIO()
             fmt = "JPEG" if mime_type == "image/jpeg" else img.format or "PNG"
             clean.save(buf, format=fmt)

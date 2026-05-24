@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 
+from app.config import settings
 from app.models.database_models import User, UserType, Talent, Employer, Trainer, Admin
 from app.dependencies.auth import create_access_token
 from app.repositories.user_repository import UserRepository
@@ -43,9 +44,7 @@ class AuthService:
 
     @staticmethod
     def create_user_token(user: User) -> dict:
-        access_token_expires = timedelta(
-            minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-        )
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user.email, "user_type": user.user_type},
             expires_delta=access_token_expires,
