@@ -3,38 +3,23 @@ from typing import List, Optional
 from fastapi import BackgroundTasks
 import os
 
-# Import models
 from app.models.database_models import ContactSubmission
 from app.services.email import EmailService
+from app.repositories.contact_repository import ContactRepository
+
 
 class ContactService:
     @staticmethod
-    async def create_contact_submission(db: Session, name: str, email: str, message: str, background_tasks: BackgroundTasks = None) -> ContactSubmission:
-        """
-        Create a new contact form submission.
-        
-        Args:
-            db: Database session
-            name: Sender's name
-            email: Sender's email
-            message: Message content
-            
-        Returns:
-            Created ContactSubmission object
-        """
-        # Create contact submission record
-        contact_submission = ContactSubmission(
-            name=name,
-            email=email,
-            message=message,
-            is_read=False
-        )
-        
-        db.add(contact_submission)
-        db.commit()
-        db.refresh(contact_submission)
-        
-        # Send notification email to admin
+    async def create_contact_submission(
+        db: Session,
+        name: str,
+        email: str,
+        message: str,
+        background_tasks: BackgroundTasks = None,
+    ) -> ContactSubmission:
+        repo = ContactRepository(db)
+        contact_submission = repo.create(name=name, email=email, message=message)
+
         if background_tasks:
             admin_email = os.getenv("ADMIN_EMAIL", "admin@climbr.com")
             await EmailService.send_email(
@@ -47,88 +32,44 @@ class ContactService:
                     "email": email,
                     "message": message,
                     "submission_id": contact_submission.id,
-                    "submitted_at": contact_submission.created_at
-                }
+                    "submitted_at": contact_submission.created_at,
+                },
             )
-        
+
         return contact_submission
-    
+
     @staticmethod
-    def get_contact_submissions(db: Session, skip: int = 0, limit: int = 100, unread_only: bool = False) -> List[ContactSubmission]:
-        """
-        Get contact form submissions.
-        
-        Args:
-            db: Database session
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-            unread_only: If True, only return unread submissions
-            
-        Returns:
-            List of ContactSubmission objects
-        """
-        query = db.query(ContactSubmission)
-        
-        if unread_only:
-            query = query.filter(ContactSubmission.is_read == False)
-        
-        return query.order_by(ContactSubmission.created_at.desc()).offset(skip).limit(limit).all()
-    
+    def get_contact_submissions(
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        unread_only: bool = False,
+    ) -> List[ContactSubmission]:
+        repo = ContactRepository(db)
+        return repo.get_all(skip=skip, limit=limit, unread_only=unread_only)
+
     @staticmethod
-    def get_contact_submission_by_id(db: Session, submission_id: int) -> Optional[ContactSubmission]:
-        """
-        Get a contact form submission by ID.
-        
-        Args:
-            db: Database session
-            submission_id: Submission ID
-            
-        Returns:
-            ContactSubmission object if found, None otherwise
-        """
-        return db.query(ContactSubmission).filter(ContactSubmission.id == submission_id).first()
-    
+    def get_contact_submission_by_id(
+        db: Session, submission_id: int
+    ) -> Optional[ContactSubmission]:
+        repo = ContactRepository(db)
+        return repo.get_by_id(submission_id)
+
     @staticmethod
-    def mark_as_read(db: Session, submission_id: int) -> Optional[ContactSubmission]:
-        """
-        Mark a contact form submission as read.
-        
-        Args:
-            db: Database session
-            submission_id: Submission ID
-            
-        Returns:
-            Updated ContactSubmission object if found, None otherwise
-        """
-        submission = db.query(ContactSubmission).filter(ContactSubmission.id == submission_id).first()
-        
+    def mark_as_read(
+        db: Session, submission_id: int
+    ) -> Optional[ContactSubmission]:
+        repo = ContactRepository(db)
+        submission = repo.get_by_id(submission_id)
         if not submission:
             return None
-        
-        submission.is_read = True
-        db.commit()
-        db.refresh(submission)
-        
-        return submission
-    
+        return repo.mark_read(submission)
+
     @staticmethod
     def delete_contact_submission(db: Session, submission_id: int) -> bool:
-        """
-        Delete a contact form submission.
-        
-        Args:
-            db: Database session
-            submission_id: Submission ID
-            
-        Returns:
-            True if submission was deleted, False otherwise
-        """
-        submission = db.query(ContactSubmission).filter(ContactSubmission.id == submission_id).first()
-        
+        repo = ContactRepository(db)
+        submission = repo.get_by_id(submission_id)
         if not submission:
             return False
-        
-        db.delete(submission)
-        db.commit()
-        
+        repo.delete(submission)
         return True
