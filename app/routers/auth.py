@@ -5,11 +5,10 @@ from typing import Optional, Dict, Any
 
 from app.database import get_db
 from app.models.user_models import Token, UserCreate, UserOut
-from app.models.database_models import UserType
+from app.models.database_models import User, UserType
 from app.services.auth import AuthService
 from app.services.verification import VerificationService
-from app.services.oauth import OAuthService
-from app.services.email import EmailService
+from app.services.firebase import verify_firebase_id_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -170,53 +169,92 @@ async def reset_password(
         
     return {"message": message}
 
-@router.get("/google/login")
-async def google_login(user_type: UserType):
-    """
-    Generate a Google OAuth authorization URL.
-    """
-    # Generate state parameter (for CSRF protection)
-    import secrets
-    state = f"{user_type.value}:{secrets.token_urlsafe(16)}"
-    
-    # Generate authorization URL
-    auth_url = OAuthService.get_google_auth_url(state)
-    
-    if not auth_url:
-        raise HTTPException(status_code=500, detail="Google OAuth is not configured")
-        
-    return {"auth_url": auth_url}
-
-@router.get("/google/callback")
-async def google_callback(
-    code: str,
-    state: Optional[str] = None,
-    db: Session = Depends(get_db)
+@router.post("/firebase")
+async def firebase_sign_in(
+    id_token: str = Body(..., embed=True),
+    user_type: UserType = Body(UserType.TALENT),
+    user_data: Optional[Dict[str, Any]] = Body(None),
+    db: Session = Depends(get_db),
 ):
     """
-    Handle Google OAuth callback.
+    Authenticate (or register) a user with a Firebase ID token.
+
+    The mobile client signs in via Google through Firebase, then sends the
+    resulting ID token here. We verify it server-side using the Firebase Admin SDK.
+
+    Flow:
+      1. Verify token → get uid + email + display_name
+      2. If user exists (by firebase_uid or email) → return JWT
+      3. Else create a new account of the requested user_type → return JWT
     """
-    # Parse state parameter
-    user_type = UserType.TALENT  # Default to talent
-    if state and ":" in state:
-        try:
-            user_type_str, _ = state.split(":", 1)
-            user_type = UserType(user_type_str)
-        except (ValueError, KeyError):
-            pass
-    
-    # Authenticate user
-    success, result = await OAuthService.authenticate_google_user(db, auth_service, code)
-    
-    if success:
-        return result
-        
-    # If authentication failed because user doesn't exist, try to register
-    if result.get("error") == "User not found. Please sign up first.":
-        success, result = await OAuthService.register_google_user(db, auth_service, code, user_type)
-        
-        if success:
-            return result
-    
-    # If still failed, return error
-    raise HTTPException(status_code=400, detail=result.get("error", "Authentication failed"))
+    claims = await verify_firebase_id_token(id_token)
+    if not claims:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired Firebase ID token",
+        )
+
+    firebase_uid: str = claims["uid"]
+    email: str = claims.get("email", "")
+    display_name: str = claims.get("name", "")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Firebase token does not include an email address",
+        )
+
+    # Look up existing user by firebase_uid first, then email
+    user: Optional[User] = (
+        db.query(User).filter(User.firebase_uid == firebase_uid).first()
+        or db.query(User).filter(User.email == email).first()
+    )
+
+    if user:
+        # Sync firebase_uid if this is a first-time Firebase login for an existing account
+        if not user.firebase_uid:
+            user.firebase_uid = firebase_uid
+            db.commit()
+        return auth_service.create_user_token(user)
+
+    # ── New user — create account ────────────────────────────────────────────
+    # Parse name: split display_name into first/last
+    name_parts = display_name.split(" ", 1)
+    first_name = name_parts[0] or "User"
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    # Base profile data; caller may supply extra fields via user_data
+    profile = user_data or {}
+    profile.setdefault("first_name", first_name)
+    profile.setdefault("last_name", last_name)
+    profile.setdefault("is_verified", True)   # Google has already verified the email
+
+    import secrets as _secrets
+    # Random password — user can't log in with password anyway for Firebase accounts
+    random_password = _secrets.token_hex(24)
+
+    try:
+        if user_type == UserType.TALENT:
+            new_user_obj = auth_service.create_talent(db, email, random_password, profile)
+            created_user = new_user_obj.user
+        elif user_type == UserType.EMPLOYER:
+            new_user_obj = auth_service.create_employer(db, email, random_password, profile)
+            created_user = new_user_obj.user
+        elif user_type == UserType.TRAINER:
+            new_user_obj = auth_service.create_trainer(db, email, random_password, profile)
+            created_user = new_user_obj.user
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user_type")
+
+        # Stamp firebase_uid and mark verified
+        created_user.firebase_uid = firebase_uid
+        created_user.is_verified = True
+        db.commit()
+
+        return auth_service.create_user_token(created_user)
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Account creation failed: {exc}") from exc
