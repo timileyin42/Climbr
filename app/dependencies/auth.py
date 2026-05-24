@@ -5,21 +5,15 @@ from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-import os
-from dotenv import load_dotenv
 
-# Import models and database
+from app.config import settings
 from app.models.user_models import TokenData
 from app.models.database_models import User, Talent, Employer, Trainer, Admin
 from app.database import get_db
 
-# Load environment variables
-load_dotenv()
-
-# Get JWT settings from environment variables or use defaults
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+SECRET_KEY = settings.JWT_SECRET_KEY
+ALGORITHM = settings.JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")

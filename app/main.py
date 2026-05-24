@@ -1,36 +1,27 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-# Import routers
+from app.config import settings
 from app.routers import talent, employer, trainer, admin, public, auth
-
-# Import setup functions
 from app.setup import setup_directories
-
-# Import services
 from app.services.archiving import ArchivingService
 from app.services.async_email import async_email_service
 
-
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Set up directories
 directories = setup_directories()
 
-# Create FastAPI app
 app = FastAPI(
     title="Climbr API",
-    description="API for Climbr - Career Platform connecting young talent with job opportunities and training programs",
-    version="1.0.0"
+    description="API for Climbr - Career Platform connecting young African talent with job opportunities and training programs",
+    version="1.0.0",
 )
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update this with your frontend URL in production
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
