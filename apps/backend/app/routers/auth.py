@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status, Body
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 
@@ -60,11 +60,31 @@ def _auth_response(user: User) -> dict:
     }
 
 
-# ── Login ──────────────────────────────────────────────────────────────────────
+# ── Schemas ────────────────────────────────────────────────────────────────────
 
 class LoginPayload(BaseModel):
     email: str
     password: str
+
+
+class RegisterPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    email: str
+    password: str
+    role: str = "talent"
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    # employer / trainer extras (shown in docs, others accepted via extra="allow")
+    company_name: Optional[str] = None
+    contact_name: Optional[str] = None
+    provider_name: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
+    location: Optional[str] = None
+    description: Optional[str] = None
 
 
 @router.post("/login")
@@ -98,11 +118,12 @@ _EMPLOYER_ONLY_FIELDS = {"company_name", "contact_name", "phone", "website",
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
-    user_data: Dict[str, Any] = Body(...),
+    payload: RegisterPayload,
     request: Request = None,
     background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
 ):
+    user_data: dict[str, Any] = payload.model_dump(exclude_none=True)
     email = user_data.get("email")
     password = user_data.get("password")
     role_str = user_data.get("role") or user_data.get("user_type", "talent")
