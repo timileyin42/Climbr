@@ -1,16 +1,53 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/auth/store'
 import { cn } from '@/lib/utils'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { employerApi } from '@/lib/api/endpoints/employer'
 
 // ── Profile tab ───────────────────────────────────────────────────────────────
 
 function ProfileTab() {
   const user = useAuthStore((s) => s.user)
+  const qc = useQueryClient()
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const { data: logoData } = useQuery({
+    queryKey: ['employer-logo'],
+    queryFn: employerApi.getLogo,
+  })
+
+  const upload = useMutation({
+    mutationFn: (file: File) => employerApi.uploadLogo(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['employer-logo'] }),
+  })
+
+  const logoUrl = logoData?.logo_url ?? null
 
   return (
     <div className="space-y-5 max-w-sm">
+      {/* Company logo */}
+      <div>
+        <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-2">Company logo</label>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] overflow-hidden bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0">
+            {logoUrl
+              ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" />
+              : <span className="text-[11px] text-[var(--color-text-tertiary)]">No logo</span>
+            }
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={upload.isPending}>
+              {upload.isPending ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+            </Button>
+            <p className="text-[11px] text-[var(--color-text-tertiary)]">PNG, JPG or WEBP · max 5 MB</p>
+          </div>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) upload.mutate(f); e.target.value = '' }} />
+      </div>
+
       <div>
         <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">First name</label>
         <div className="px-3 py-2.5 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[14px] text-[var(--color-text-secondary)]">

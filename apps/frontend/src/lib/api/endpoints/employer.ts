@@ -51,4 +51,10 @@ export const employerApi = {
   accept:      (jobId: number, applicantId: number) => api.post(`employer/jobs/${jobId}/applicants/${applicantId}/accept`).json<void>(),
   shortlist:   (jobId: number, applicantId: number) => api.post(`employer/jobs/${jobId}/applicants/${applicantId}/shortlist`).json<void>(),
   reject:      (jobId: number, applicantId: number) => api.post(`employer/jobs/${jobId}/applicants/${applicantId}/reject`).json<void>(),
+
+  getLogo:     () => api.get('employer/profile/logo').json<{ logo_url: string | null }>(),
+  uploadLogo:  (file: File) => {
+    const fd = new FormData(); fd.append('file', file)
+    return api.post('employer/profile/logo', { body: fd }).json<{ logo_url: string }>()
+  },
 }

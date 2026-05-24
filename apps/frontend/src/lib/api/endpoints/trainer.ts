@@ -44,4 +44,10 @@ export const trainerApi = {
   accept:      (trainingId: number, applicantId: number) => api.post(`trainer/trainings/${trainingId}/applicants/${applicantId}/accept`).json<void>(),
   shortlist:   (trainingId: number, applicantId: number) => api.post(`trainer/trainings/${trainingId}/applicants/${applicantId}/shortlist`).json<void>(),
   reject:      (trainingId: number, applicantId: number) => api.post(`trainer/trainings/${trainingId}/applicants/${applicantId}/reject`).json<void>(),
+
+  getLogo:     () => api.get('trainer/profile/logo').json<{ logo_url: string | null }>(),
+  uploadLogo:  (file: File) => {
+    const fd = new FormData(); fd.append('file', file)
+    return api.post('trainer/profile/logo', { body: fd }).json<{ logo_url: string }>()
+  },
 }

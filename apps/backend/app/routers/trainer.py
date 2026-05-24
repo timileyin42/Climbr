@@ -475,3 +475,29 @@ async def renew_training(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to renew training: {str(e)}")
+
+
+@router.post("/profile/logo")
+async def upload_logo(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_trainer: Trainer = Depends(get_current_trainer),
+):
+    """Upload or replace the trainer organisation logo."""
+    if current_trainer.logo_url:
+        await StorageService.delete_file(current_trainer.logo_url)
+
+    folder = f"trainer_logos/{current_trainer.id}"
+    file_url = await StorageService.upload_image(file, folder)
+    if not file_url:
+        raise HTTPException(status_code=500, detail="Failed to upload logo. Please try again.")
+
+    current_trainer.logo_url = file_url
+    db.commit()
+    return {"message": "Logo uploaded successfully", "logo_url": file_url}
+
+
+@router.get("/profile/logo")
+async def get_logo(current_trainer: Trainer = Depends(get_current_trainer)):
+    """Return the current trainer logo URL."""
+    return {"logo_url": current_trainer.logo_url}

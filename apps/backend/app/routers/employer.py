@@ -502,3 +502,29 @@ async def renew_job(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to renew job: {str(e)}")
+
+
+@router.post("/profile/logo")
+async def upload_logo(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_employer: Employer = Depends(get_current_employer),
+):
+    """Upload or replace the employer company logo."""
+    if current_employer.logo_url:
+        await StorageService.delete_file(current_employer.logo_url)
+
+    folder = f"employer_logos/{current_employer.id}"
+    file_url = await StorageService.upload_image(file, folder)
+    if not file_url:
+        raise HTTPException(status_code=500, detail="Failed to upload logo. Please try again.")
+
+    current_employer.logo_url = file_url
+    db.commit()
+    return {"message": "Logo uploaded successfully", "logo_url": file_url}
+
+
+@router.get("/profile/logo")
+async def get_logo(current_employer: Employer = Depends(get_current_employer)):
+    """Return the current employer logo URL."""
+    return {"logo_url": current_employer.logo_url}
