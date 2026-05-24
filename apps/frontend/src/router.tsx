@@ -1,14 +1,22 @@
+import { lazy } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { RequireAuth, RequireRole, RequireVerified } from '@/lib/auth/guards'
 
-// ── Lazy pages ──────────────────────────────────────────────────────────────
-const Landing = () => import('@/features/public/Landing')
-const Login = () => import('@/features/auth/Login')
-const SignUp = () => import('@/features/auth/SignUp')
-const TalentDashboard = () => import('@/features/talent/dashboard/Dashboard')
-const EmployerDashboard = () => import('@/features/employer/dashboard/Dashboard')
-const TrainerDashboard = () => import('@/features/trainer/dashboard/Dashboard')
-const AdminDashboard = () => import('@/features/admin/dashboard/Dashboard')
+// ── Route lazy (React Router handles Suspense) ───────────────────────────────
+const Landing        = () => import('@/features/public/Landing')
+const Login          = () => import('@/features/auth/Login')
+const SignUp         = () => import('@/features/auth/SignUp')
+const ForgotPassword = () => import('@/features/auth/ForgotPassword')
+const ResetPassword  = () => import('@/features/auth/ResetPassword')
+const VerifyEmail    = () => import('@/features/auth/VerifyEmail')
+const Onboarding     = () => import('@/features/auth/Onboarding')
+
+// ── React.lazy (for use inside JSX guards — Suspense is in AppShell) ─────────
+const TalentDashboard   = lazy(() => import('@/features/talent/dashboard/Dashboard').then((m) => ({ default: m.Component })))
+const EmployerDashboard = lazy(() => import('@/features/employer/dashboard/Dashboard').then((m) => ({ default: m.Component })))
+const TrainerDashboard  = lazy(() => import('@/features/trainer/dashboard/Dashboard').then((m) => ({ default: m.Component })))
+const AdminDashboard    = lazy(() => import('@/features/admin/dashboard/Dashboard').then((m) => ({ default: m.Component })))
 
 // ── Placeholder component for unbuilt pages ─────────────────────────────────
 function Placeholder({ name }: { name: string }) {
@@ -19,67 +27,206 @@ function Placeholder({ name }: { name: string }) {
   )
 }
 
-export const router = createBrowserRouter([
-  // Public pages (no shell)
-  { path: '/', lazy: Landing },
-  { path: '/login', lazy: Login },
-  { path: '/signup', lazy: SignUp },
-  { path: '/forgot-password', element: <Placeholder name="Forgot Password" /> },
-  { path: '/reset-password', element: <Placeholder name="Reset Password" /> },
-  { path: '/verify-email', element: <Placeholder name="Verify Email" /> },
-  { path: '/for-employers', element: <Placeholder name="For Employers" /> },
-  { path: '/for-trainers', element: <Placeholder name="For Trainers" /> },
-  { path: '/faq', element: <Placeholder name="FAQ" /> },
-  { path: '/contact', element: <Placeholder name="Contact" /> },
-  { path: '/privacy', element: <Placeholder name="Privacy Policy" /> },
-  { path: '/terms', element: <Placeholder name="Terms of Service" /> },
+// ── Guarded wrappers ─────────────────────────────────────────────────────────
+function TalentOnly({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <RequireVerified>
+        <RequireRole role="talent">{children}</RequireRole>
+      </RequireVerified>
+    </RequireAuth>
+  )
+}
+function EmployerOnly({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <RequireVerified>
+        <RequireRole role="employer">{children}</RequireRole>
+      </RequireVerified>
+    </RequireAuth>
+  )
+}
+function TrainerOnly({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <RequireVerified>
+        <RequireRole role="trainer">{children}</RequireRole>
+      </RequireVerified>
+    </RequireAuth>
+  )
+}
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <RequireRole role="admin">{children}</RequireRole>
+    </RequireAuth>
+  )
+}
 
-  // Authenticated shell
+export const router = createBrowserRouter([
+  // ── Public (no shell) ──────────────────────────────────────────────────────
+  { path: '/',                lazy: Landing },
+  { path: '/login',           lazy: Login },
+  { path: '/signup',          lazy: SignUp },
+  { path: '/forgot-password', lazy: ForgotPassword },
+  { path: '/reset-password',  lazy: ResetPassword },
+  { path: '/verify-email',    lazy: VerifyEmail },
+  { path: '/onboarding',      lazy: Onboarding },
+
+  // Marketing pages (no shell)
+  { path: '/for-employers', element: <Placeholder name="For Employers" /> },
+  { path: '/for-trainers',  element: <Placeholder name="For Trainers" /> },
+  { path: '/faq',           element: <Placeholder name="FAQ" /> },
+  { path: '/contact',       element: <Placeholder name="Contact" /> },
+  { path: '/privacy',       element: <Placeholder name="Privacy Policy" /> },
+  { path: '/terms',         element: <Placeholder name="Terms of Service" /> },
+
+  // ── Authenticated shell ────────────────────────────────────────────────────
   {
     element: <AppShell />,
     children: [
-      // Talent
-      { path: '/dashboard', lazy: TalentDashboard },
-      { path: '/jobs', element: <Placeholder name="Job Listings" /> },
-      { path: '/jobs/:id', element: <Placeholder name="Job Detail" /> },
-      { path: '/trainings', element: <Placeholder name="Trainings" /> },
-      { path: '/trainings/:id', element: <Placeholder name="Training Detail" /> },
-      { path: '/discover', element: <Placeholder name="Discover" /> },
-      { path: '/applications', element: <Placeholder name="My Applications" /> },
-      { path: '/saved', element: <Placeholder name="Saved" /> },
-      { path: '/profile', element: <Placeholder name="My Profile" /> },
-      { path: '/settings', element: <Placeholder name="Settings" /> },
+      // Talent routes
+      {
+        path: '/dashboard',
+        element: <TalentOnly><TalentDashboard /></TalentOnly>,
+      },
 
-      // Employer
-      { path: '/employer/dashboard', lazy: EmployerDashboard },
-      { path: '/employer/jobs', element: <Placeholder name="My Jobs" /> },
-      { path: '/employer/jobs/new', element: <Placeholder name="Post New Job" /> },
-      { path: '/employer/jobs/:id', element: <Placeholder name="Job Detail (Employer)" /> },
-      { path: '/employer/applicants', element: <Placeholder name="Applicants" /> },
-      { path: '/employer/credits', element: <Placeholder name="Credits" /> },
-      { path: '/employer/settings', element: <Placeholder name="Employer Settings" /> },
+      {
+        path: '/jobs',
+        element: <TalentOnly><Placeholder name="Job Listings" /></TalentOnly>,
+      },
+      {
+        path: '/jobs/:id',
+        element: <TalentOnly><Placeholder name="Job Detail" /></TalentOnly>,
+      },
+      {
+        path: '/trainings',
+        element: <TalentOnly><Placeholder name="Trainings" /></TalentOnly>,
+      },
+      {
+        path: '/trainings/:id',
+        element: <TalentOnly><Placeholder name="Training Detail" /></TalentOnly>,
+      },
+      {
+        path: '/discover',
+        element: <TalentOnly><Placeholder name="Discover" /></TalentOnly>,
+      },
+      {
+        path: '/applications',
+        element: <TalentOnly><Placeholder name="My Applications" /></TalentOnly>,
+      },
+      {
+        path: '/saved',
+        element: <TalentOnly><Placeholder name="Saved" /></TalentOnly>,
+      },
+      {
+        path: '/profile',
+        element: <TalentOnly><Placeholder name="My Profile" /></TalentOnly>,
+      },
+      {
+        path: '/settings',
+        element: <RequireAuth><Placeholder name="Settings" /></RequireAuth>,
+      },
 
-      // Trainer
-      { path: '/trainer/dashboard', lazy: TrainerDashboard },
-      { path: '/trainer/trainings', element: <Placeholder name="My Trainings" /> },
-      { path: '/trainer/trainings/new', element: <Placeholder name="Post New Training" /> },
-      { path: '/trainer/applicants', element: <Placeholder name="Applicants" /> },
-      { path: '/trainer/credits', element: <Placeholder name="Credits" /> },
-      { path: '/trainer/settings', element: <Placeholder name="Trainer Settings" /> },
+      // Employer routes
+      {
+        path: '/employer/dashboard',
+        element: <EmployerOnly><EmployerDashboard /></EmployerOnly>,
+      },
+      {
+        path: '/employer/jobs',
+        element: <EmployerOnly><Placeholder name="My Jobs" /></EmployerOnly>,
+      },
+      {
+        path: '/employer/jobs/new',
+        element: <EmployerOnly><Placeholder name="Post New Job" /></EmployerOnly>,
+      },
+      {
+        path: '/employer/jobs/:id',
+        element: <EmployerOnly><Placeholder name="Job Detail (Employer)" /></EmployerOnly>,
+      },
+      {
+        path: '/employer/applicants',
+        element: <EmployerOnly><Placeholder name="Applicants" /></EmployerOnly>,
+      },
+      {
+        path: '/employer/credits',
+        element: <EmployerOnly><Placeholder name="Credits" /></EmployerOnly>,
+      },
+      {
+        path: '/employer/settings',
+        element: <EmployerOnly><Placeholder name="Employer Settings" /></EmployerOnly>,
+      },
 
-      // Admin
-      { path: '/admin/dashboard', lazy: AdminDashboard },
-      { path: '/admin/users', element: <Placeholder name="Users" /> },
-      { path: '/admin/content', element: <Placeholder name="Content" /> },
-      { path: '/admin/payments', element: <Placeholder name="Payments" /> },
-      { path: '/admin/pricing', element: <Placeholder name="Pricing" /> },
-      { path: '/admin/reports', element: <Placeholder name="Reports" /> },
-      { path: '/admin/contact', element: <Placeholder name="Contact Submissions" /> },
-      { path: '/admin/admins', element: <Placeholder name="Admin Users" /> },
-      { path: '/admin/settings', element: <Placeholder name="Admin Settings" /> },
+      // Trainer routes
+      {
+        path: '/trainer/dashboard',
+        element: <TrainerOnly><TrainerDashboard /></TrainerOnly>,
+      },
+      {
+        path: '/trainer/trainings',
+        element: <TrainerOnly><Placeholder name="My Trainings" /></TrainerOnly>,
+      },
+      {
+        path: '/trainer/trainings/new',
+        element: <TrainerOnly><Placeholder name="Post New Training" /></TrainerOnly>,
+      },
+      {
+        path: '/trainer/applicants',
+        element: <TrainerOnly><Placeholder name="Applicants" /></TrainerOnly>,
+      },
+      {
+        path: '/trainer/credits',
+        element: <TrainerOnly><Placeholder name="Credits" /></TrainerOnly>,
+      },
+      {
+        path: '/trainer/settings',
+        element: <TrainerOnly><Placeholder name="Trainer Settings" /></TrainerOnly>,
+      },
+
+      // Admin routes
+      {
+        path: '/admin/dashboard',
+        element: <AdminOnly><AdminDashboard /></AdminOnly>,
+      },
+      {
+        path: '/admin/users',
+        element: <AdminOnly><Placeholder name="Users" /></AdminOnly>,
+      },
+      {
+        path: '/admin/content',
+        element: <AdminOnly><Placeholder name="Content" /></AdminOnly>,
+      },
+      {
+        path: '/admin/payments',
+        element: <AdminOnly><Placeholder name="Payments" /></AdminOnly>,
+      },
+      {
+        path: '/admin/pricing',
+        element: <AdminOnly><Placeholder name="Pricing" /></AdminOnly>,
+      },
+      {
+        path: '/admin/reports',
+        element: <AdminOnly><Placeholder name="Reports" /></AdminOnly>,
+      },
+      {
+        path: '/admin/contact',
+        element: <AdminOnly><Placeholder name="Contact Submissions" /></AdminOnly>,
+      },
+      {
+        path: '/admin/admins',
+        element: <AdminOnly><Placeholder name="Admin Users" /></AdminOnly>,
+      },
+      {
+        path: '/admin/settings',
+        element: <AdminOnly><Placeholder name="Admin Settings" /></AdminOnly>,
+      },
+
+      // 403
+      { path: '/403', element: <Placeholder name="403 — Access Denied" /> },
     ],
   },
 
-  // Fallbacks
+  // Fallback
   { path: '*', element: <Placeholder name="404 — Page Not Found" /> },
 ])
