@@ -31,15 +31,6 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ── CORS ──────────────────────────────────────────────────────────────────
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 # ── ETag middleware for GET list responses ────────────────────────────────
 @app.middleware("http")
@@ -85,6 +76,18 @@ async def add_request_id_and_security_headers(request: Request, call_next):
     return response
 
 
+# ── CORS — must be added AFTER the @app.middleware decorators so it sits
+#    outermost in the ASGI stack and handles OPTIONS before BaseHTTPMiddleware
+#    layers can interfere. ────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # ── Global exception handler ──────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
@@ -116,6 +119,7 @@ app.include_router(profile_views.router, tags=["profile-views"])
 async def startup_event():
     logger.info("Starting up Climbr API (env=%s)", settings.ENVIRONMENT)
     logger.info("Templates directory: %s", directories["templates_dir"])
+    logger.info("CORS allowed origins: %s", settings.cors_origins_list)
     await ArchivingService.setup_scheduled_archiving(app)
 
 
@@ -138,7 +142,11 @@ async def root():
 
 @app.get("/health", tags=["system"])
 async def health():
-    return {"status": "ok", "environment": settings.ENVIRONMENT}
+    return {
+        "status": "ok",
+        "environment": settings.ENVIRONMENT,
+        "cors_origins": settings.cors_origins_list,
+    }
 
 
 @app.get("/version", tags=["system"])
