@@ -17,15 +17,18 @@ VALID_STATUSES = ('pending', 'success', 'failed', 'abandoned', 'reversed')
 
 
 def upgrade():
-    conn = op.get_bind()
-
     # Create the enum type
-    conn.execution_options(isolation_level="AUTOCOMMIT").execute(
-        sa.text(
-            "CREATE TYPE IF NOT EXISTS paymentstatus AS ENUM "
-            "('pending', 'success', 'failed', 'abandoned', 'reversed')"
-        )
-    )
+    op.execute(sa.text("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'paymentstatus') THEN
+                CREATE TYPE paymentstatus AS ENUM (
+                    'pending', 'success', 'failed', 'abandoned', 'reversed'
+                );
+            END IF;
+        END
+        $$;
+    """))
 
     # Normalise any existing free-text status values to 'pending'
     valid_in = ", ".join(f"'{v}'" for v in VALID_STATUSES)

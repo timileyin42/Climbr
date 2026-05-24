@@ -14,6 +14,15 @@ depends_on = None
 
 
 def upgrade():
+    # Some historical revision IDs are longer than Alembic's default VARCHAR(32).
+    op.alter_column(
+        'alembic_version',
+        'version_num',
+        existing_type=sa.String(length=32),
+        type_=sa.String(length=128),
+        existing_nullable=False,
+    )
+
     # Unique constraint: one application per talent per job
     op.create_unique_constraint(
         'uq_job_applications_job_talent', 'job_applications', ['job_id', 'talent_id']

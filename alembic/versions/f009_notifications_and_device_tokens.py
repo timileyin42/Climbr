@@ -6,7 +6,7 @@ Create Date: 2026-05-24
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ENUM, JSONB
 
 revision = 'f009_notifications_and_device_tokens'
 down_revision = 'f008_saved_trainings'
@@ -16,25 +16,45 @@ depends_on = None
 
 def upgrade():
     # Notification type enum
-    notification_type = sa.Enum(
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notificationtype') THEN
+                CREATE TYPE notificationtype AS ENUM (
+                    'job_match', 'application_update', 'training_match', 'system'
+                );
+            END IF;
+        END
+        $$;
+    """)
+    notification_type = ENUM(
         'job_match', 'application_update', 'training_match', 'system',
-        name='notificationtype'
+        name='notificationtype',
+        create_type=False,
     )
-    notification_type.create(op.get_bind(), checkfirst=True)
 
     # Device platform enum
-    device_platform = sa.Enum(
+    op.execute("""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'deviceplatform') THEN
+                CREATE TYPE deviceplatform AS ENUM ('ios', 'android', 'web');
+            END IF;
+        END
+        $$;
+    """)
+    device_platform = ENUM(
         'ios', 'android', 'web',
-        name='deviceplatform'
+        name='deviceplatform',
+        create_type=False,
     )
-    device_platform.create(op.get_bind(), checkfirst=True)
 
     # notifications table
     op.create_table(
         'notifications',
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id'), nullable=False),
-        sa.Column('type', sa.Enum('job_match', 'application_update', 'training_match', 'system', name='notificationtype'), nullable=False),
+        sa.Column('type', notification_type, nullable=False),
         sa.Column('title', sa.String(), nullable=False),
         sa.Column('body', sa.Text(), nullable=False),
         sa.Column('data', JSONB(), nullable=True),
@@ -50,7 +70,7 @@ def upgrade():
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('talent_id', sa.Integer(), sa.ForeignKey('talents.id'), nullable=False),
         sa.Column('token', sa.String(), nullable=False, unique=True),
-        sa.Column('platform', sa.Enum('ios', 'android', 'web', name='deviceplatform'), nullable=False),
+        sa.Column('platform', device_platform, nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()')),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()')),
     )
