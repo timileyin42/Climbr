@@ -10,7 +10,6 @@ import {
   useConversations,
   useConversationThread,
   useSendMessage,
-  useStartConversation,
 } from '@/lib/api/queries/useMessages'
 import type { ConversationSummary } from '@/lib/api/endpoints/messages'
 import { cn } from '@/lib/utils'
