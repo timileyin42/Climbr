@@ -21,3 +21,6 @@ ENV/
 # Logs
 logs/
 *.log
+
+# Internal prompt/planning docs
+climbr_prompts*.md
