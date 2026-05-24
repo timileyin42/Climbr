@@ -1,6 +1,6 @@
-# iRxcruit Backend Tests
+# Climbr Backend Tests
 
-This directory contains tests for the iRxcruit backend API.
+This directory contains tests for the Climbr backend API.
 
 ## Running Tests
 

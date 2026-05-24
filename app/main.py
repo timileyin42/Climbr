@@ -22,8 +22,8 @@ directories = setup_directories()
 
 # Create FastAPI app
 app = FastAPI(
-    title="iRxcruit API",
-    description="API for iRxcruit - Career Platform connecting young talent with job opportunities and training programs",
+    title="Climbr API",
+    description="API for Climbr - Career Platform connecting young talent with job opportunities and training programs",
     version="1.0.0"
 )
 
@@ -47,7 +47,7 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 @app.on_event("startup")
 async def startup_event():
     """Run startup tasks"""
-    logger.info("Starting up iRxcruit API")
+    logger.info("Starting up Climbr API")
     logger.info(f"Templates directory: {directories['templates_dir']}")
     
     # Set up scheduled archiving tasks
@@ -56,7 +56,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run shutdown tasks"""
-    logger.info("Shutting down iRxcruit API")
+    logger.info("Shutting down Climbr API")
     
     # Shut down the scheduler if it exists
     if hasattr(app.state, "scheduler"):
@@ -68,4 +68,4 @@ async def shutdown_event():
 
 @app.get("/", tags=["root"])
 async def root():
-    return {"message": "Welcome to iRxcruit API - Because building your future shouldn't feel like rocket science."}
+    return {"message": "Welcome to Climbr API - Because building your future shouldn't feel like rocket science."}

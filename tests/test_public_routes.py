@@ -89,7 +89,7 @@ def test_get_homepage(test_db):
     response = client.get("/")
     assert response.status_code == 200
     assert "message" in response.json()
-    assert response.json()["message"] == "Welcome to iRxcruit API"
+    assert response.json()["message"] == "Welcome to Climbr API"
 
 def test_get_jobs(test_db):
     response = client.get("/jobs")

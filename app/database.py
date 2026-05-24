@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get database URL from environment variables or use a default PostgreSQL database
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/irxcruit")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/climbr")
 
 # Create SQLAlchemy engine with connection pooling
 engine = create_engine(

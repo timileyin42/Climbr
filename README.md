@@ -1,10 +1,10 @@
-# iRxcruit Backend API
+# Climbr Backend API
 
 *"Because building your future shouldn't feel like rocket science."*
 
 ## Overview
 
-iRxcruit is a comprehensive career platform that connects young talent with job opportunities and training programs. This repository contains the backend API built with FastAPI, featuring a robust architecture with role-based access control, payment processing, email notifications, file storage, and comprehensive user management.
+Climbr is a comprehensive career platform that connects young talent with job opportunities and training programs. This repository contains the backend API built with FastAPI, featuring a robust architecture with role-based access control, payment processing, email notifications, file storage, and comprehensive user management.
 
 ## 🏗️ Architecture
 
@@ -69,7 +69,7 @@ The backend follows a clean architecture pattern with clear separation of concer
 ## 📁 Project Structure
 
 ```
-iRxcruit-Backend/
+Climbr-Backend/
 ├── app/
 │   ├── main.py                    # FastAPI application entry point
 │   ├── database.py                # Database configuration and session management
@@ -290,8 +290,8 @@ Multi-provider file storage system:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/irxcruit-backend.git
-   cd iRxcruit-Backend
+   git clone https://github.com/yourusername/climbr-backend.git
+   cd Climbr-Backend
    ```
 
 2. **Create a virtual environment:**
@@ -318,7 +318,7 @@ Multi-provider file storage system:
    Copy `.env.example` to `.env` and configure:
    ```env
    # Database
-   DATABASE_URL=sqlite:///./irxcruit.db
+   DATABASE_URL=sqlite:///./climbr.db
    
    # JWT Configuration
    JWT_SECRET_KEY=your-super-secret-jwt-key-here
@@ -328,7 +328,7 @@ Multi-provider file storage system:
    # Email Service (Resend)
    RESEND_API_KEY=your-resend-api-key
    FROM_EMAIL=no-reply@yourdomain.com
-   FROM_NAME=iRxcruit Team
+   FROM_NAME=Climbr Team
    ADMIN_EMAIL=admin@yourdomain.com
    
    # File Storage (AWS S3)

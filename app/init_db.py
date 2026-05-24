@@ -40,7 +40,7 @@ def init_db():
 
 def create_admin_user(db: Session):
     # Get admin credentials from environment variables or use defaults
-    admin_email = os.getenv("ADMIN_EMAIL", "admin@irxcruit.com")
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@climbr.com")
     admin_password = os.getenv("ADMIN_PASSWORD", "adminpassword")
     admin_first_name = os.getenv("ADMIN_FIRST_NAME", "Admin")
     admin_last_name = os.getenv("ADMIN_LAST_NAME", "User")

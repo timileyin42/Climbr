@@ -63,7 +63,7 @@ class AsyncEmailService:
         
         return await self.send_email_async(
             to_email=user_email,
-            subject="Verify Your Email Address - iRxcruit",
+            subject="Verify Your Email Address - Climbr",
             template_name="email_verification.html",
             template_data=template_data
         )
@@ -83,7 +83,7 @@ class AsyncEmailService:
         
         return await self.send_email_async(
             to_email=user_email,
-            subject="Welcome to iRxcruit!",
+            subject="Welcome to Climbr!",
             template_name="welcome.html",
             template_data=template_data
         )
@@ -100,7 +100,7 @@ class AsyncEmailService:
         
         return await self.send_email_async(
             to_email=user_email,
-            subject="Reset Your Password - iRxcruit",
+            subject="Reset Your Password - Climbr",
             template_name="password_reset.html",
             template_data=template_data
         )

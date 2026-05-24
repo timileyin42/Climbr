@@ -1,4 +1,4 @@
-# iRxcruit Backend — Complete Codebase Audit
+# Climbr Backend — Complete Codebase Audit
 
 **Audit Date:** 2026-05-24  
 **Auditor:** Automated full-codebase review  
@@ -664,7 +664,7 @@ Wrapper using `ThreadPoolExecutor` for background email sending; delegates to `E
 `app/init_db.py:43-44` — `admin_password = os.getenv("ADMIN_PASSWORD", "adminpassword")`. If the env variable is absent, the admin account is created with the password `adminpassword`.
 
 **SEC-4 — Hardcoded database credentials**
-`app/database.py:11` — `DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/irxcruit")`. Hardcoded credentials in source code.
+`app/database.py:11` — `DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/climbr")`. Hardcoded credentials in source code.
 
 **SEC-5 — Password reset and verification tokens stored as plaintext in DB**
 `app/models/database_models.py:80-83` — `verification_token` and `password_reset_token` are stored as plain strings. An attacker with read access to the database can immediately use these tokens. They should be stored as hashes.
@@ -773,7 +773,7 @@ Neither `employer.py` nor `trainer.py` implement a webhook endpoint for Stripe e
 `app/routers/admin.py:203-206` — `db.text("talents.first_name ILIKE :name OR talents.last_name ILIKE :name")` is used inside `filter()` on a Query object. This pattern is deprecated in SQLAlchemy 2.0 and may silently fail or raise a compile error. The same pattern appears in `get_all_employers` (line 299) and `get_all_trainers` (lines 443, 449).
 
 **BRK-11 — `test_public_routes.py` tests fail on response shape**
-`tests/test_public_routes.py:93, 98` — `test_get_homepage` asserts `response.json()["message"] == "Welcome to iRxcruit API"` but the actual message is `"Welcome to iRxcruit - You bring the potential..."`. `test_get_jobs` asserts `isinstance(response.json(), list)` but the endpoint returns `{"jobs": [...], "pagination": {...}}` (a dict). Both tests will fail.
+`tests/test_public_routes.py:93, 98` — `test_get_homepage` asserts `response.json()["message"] == "Welcome to Climbr API"` but the actual message is `"Welcome to Climbr - You bring the potential..."`. `test_get_jobs` asserts `isinstance(response.json(), list)` but the endpoint returns `{"jobs": [...], "pagination": {...}}` (a dict). Both tests will fail.
 
 **BRK-12 — `JobListing` Pydantic model missing `industry` field**
 `app/models/job_models.py:67-84` — `JobListing` does not include the `industry` field, but the `Job` ORM model has it and it is part of the public job listing response. The `model_validate` call in public.py will silently drop it.

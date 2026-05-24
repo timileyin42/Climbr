@@ -2,7 +2,7 @@ import os
 
 def create_directory_structure():
     """
-    Create the directory structure for the iRxcruit backend project.
+    Create the directory structure for the Climbr backend project.
     """
     # Define the directories to create
     directories = [
@@ -39,6 +39,6 @@ def create_directory_structure():
             print(f"Created file: {init_file}")
 
 if __name__ == "__main__":
-    print("Creating directory structure for iRxcruit backend...")
+    print("Creating directory structure for Climbr backend...")
     create_directory_structure()
     print("Directory structure created successfully!")

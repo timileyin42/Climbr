@@ -36,7 +36,7 @@ class ContactService:
         
         # Send notification email to admin
         if background_tasks:
-            admin_email = os.getenv("ADMIN_EMAIL", "admin@irxcruit.com")
+            admin_email = os.getenv("ADMIN_EMAIL", "admin@climbr.com")
             await EmailService.send_email(
                 background_tasks=background_tasks,
                 to_email=admin_email,

@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 # Resend API configuration
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 RESEND_API_URL = "https://api.resend.com/emails"
-FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@irxcruit.com")
-FROM_NAME = os.getenv("FROM_NAME", "iRxcruit Team")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@climbr.com")
+FROM_NAME = os.getenv("FROM_NAME", "Climbr Team")
 
 # Templates configuration
 TEMPLATES_DIR = Path(os.getenv("TEMPLATES_DIR", Path(__file__).parent.parent / "templates"))
@@ -108,12 +108,12 @@ class EmailService:
             to_email: Recipient email address
             user_name: Name of the user
         """
-        subject = "Welcome to iRxcruit!"
+        subject = "Welcome to Climbr!"
         template_name = "welcome.html"
         template_data = {
             "user_name": user_name,
-            "platform_name": "iRxcruit",
-            "login_url": "https://irxcruit.com/login"
+            "platform_name": "Climbr",
+            "login_url": "https://climbr.com/login"
         }
         
         await EmailService.send_email(background_tasks, to_email, subject, template_name, template_data)
@@ -131,7 +131,7 @@ class EmailService:
         template_name = "email_verification.html"
         template_data = {
             "verification_link": verification_link,
-            "platform_name": "iRxcruit",
+            "platform_name": "Climbr",
             "expiry_hours": 24  # Token expires in 24 hours
         }
         
@@ -151,7 +151,7 @@ class EmailService:
         template_name = "password_reset.html"
         template_data = {
             "reset_link": reset_link,
-            "platform_name": "iRxcruit",
+            "platform_name": "Climbr",
             "expiry_hours": 1  # Token expires in 1 hour
         }
         
@@ -177,11 +177,11 @@ class EmailService:
             "user_name": user_name,
             "application_type": application_type,
             "title": job_or_training_title,
-            "dashboard_url": "https://irxcruit.com/talent/dashboard"
+            "dashboard_url": "https://climbr.com/talent/dashboard"
         }
-        
+
         await EmailService.send_email(background_tasks, to_email, subject, template_name, template_data)
-    
+
     @staticmethod
     async def send_application_status_update(background_tasks: BackgroundTasks, to_email: str, user_name: str, job_or_training_title: str, is_job: bool = True) -> None:
         """
@@ -201,7 +201,7 @@ class EmailService:
             "user_name": user_name,
             "application_type": application_type,
             "title": job_or_training_title,
-            "dashboard_url": "https://irxcruit.com/talent/dashboard"
+            "dashboard_url": "https://climbr.com/talent/dashboard"
         }
-        
+
         await EmailService.send_email(background_tasks, to_email, subject, template_name, template_data)

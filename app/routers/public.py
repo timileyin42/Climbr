@@ -27,7 +27,7 @@ class ContactFormRequest(BaseModel):
 @router.get("/")
 async def home():
     """Homepage endpoint"""
-    return {"message": "Welcome to iRxcruit - You bring the potential. We'll help with the rest."}
+    return {"message": "Welcome to Climbr - You bring the potential. We'll help with the rest."}
 
 @router.get("/jobs", response_model=dict)
 async def get_jobs(
