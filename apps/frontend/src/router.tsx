@@ -31,6 +31,20 @@ const Saved        = lazy(() => import('@/features/talent/saved/Saved').then((m)
 const Profile      = lazy(() => import('@/features/talent/profile/Profile').then((m) => ({ default: m.Component })))
 const TalentSettings = lazy(() => import('@/features/talent/settings/Settings').then((m) => ({ default: m.Component })))
 
+// Employer
+const EmployerJobs           = lazy(() => import('@/features/employer/jobs/Jobs').then((m) => ({ default: m.Component })))
+const EmployerPostJob        = lazy(() => import('@/features/employer/jobs/PostJob').then((m) => ({ default: m.Component })))
+const EmployerJobApplicants  = lazy(() => import('@/features/employer/jobs/JobApplicants').then((m) => ({ default: m.Component })))
+const EmployerCredits        = lazy(() => import('@/features/employer/credits/Credits').then((m) => ({ default: m.Component })))
+const EmployerSettings       = lazy(() => import('@/features/employer/settings/Settings').then((m) => ({ default: m.Component })))
+
+// Trainer
+const TrainerTrainings       = lazy(() => import('@/features/trainer/trainings/Trainings').then((m) => ({ default: m.Component })))
+const TrainerPostTraining    = lazy(() => import('@/features/trainer/trainings/PostTraining').then((m) => ({ default: m.Component })))
+const TrainerApplicants      = lazy(() => import('@/features/trainer/trainings/TrainingApplicants').then((m) => ({ default: m.Component })))
+const TrainerCredits         = lazy(() => import('@/features/trainer/credits/Credits').then((m) => ({ default: m.Component })))
+const TrainerSettings        = lazy(() => import('@/features/trainer/settings/Settings').then((m) => ({ default: m.Component })))
+
 // ── Placeholder ───────────────────────────────────────────────────────────────
 function Placeholder({ name }: { name: string }) {
   return (
@@ -87,21 +101,21 @@ export const router = createBrowserRouter([
       { path: '/settings',     element: <RequireAuth><TalentSettings /></RequireAuth> },
 
       // Employer
-      { path: '/employer/dashboard', element: <EmployerOnly><EmployerDashboard /></EmployerOnly> },
-      { path: '/employer/jobs',      element: <EmployerOnly><Placeholder name="My Jobs" /></EmployerOnly> },
-      { path: '/employer/jobs/new',  element: <EmployerOnly><Placeholder name="Post New Job" /></EmployerOnly> },
-      { path: '/employer/jobs/:id',  element: <EmployerOnly><Placeholder name="Job Detail (Employer)" /></EmployerOnly> },
-      { path: '/employer/applicants',element: <EmployerOnly><Placeholder name="Applicants" /></EmployerOnly> },
-      { path: '/employer/credits',   element: <EmployerOnly><Placeholder name="Credits" /></EmployerOnly> },
-      { path: '/employer/settings',  element: <EmployerOnly><Placeholder name="Employer Settings" /></EmployerOnly> },
+      { path: '/employer/dashboard',              element: <EmployerOnly><EmployerDashboard /></EmployerOnly> },
+      { path: '/employer/jobs',                   element: <EmployerOnly><EmployerJobs /></EmployerOnly> },
+      { path: '/employer/jobs/new',               element: <EmployerOnly><EmployerPostJob /></EmployerOnly> },
+      { path: '/employer/jobs/:id',               element: <EmployerOnly><Placeholder name="Job Detail (Employer)" /></EmployerOnly> },
+      { path: '/employer/jobs/:id/applicants',    element: <EmployerOnly><EmployerJobApplicants /></EmployerOnly> },
+      { path: '/employer/credits',                element: <EmployerOnly><EmployerCredits /></EmployerOnly> },
+      { path: '/employer/settings',               element: <EmployerOnly><EmployerSettings /></EmployerOnly> },
 
       // Trainer
-      { path: '/trainer/dashboard',       element: <TrainerOnly><TrainerDashboard /></TrainerOnly> },
-      { path: '/trainer/trainings',       element: <TrainerOnly><Placeholder name="My Trainings" /></TrainerOnly> },
-      { path: '/trainer/trainings/new',   element: <TrainerOnly><Placeholder name="Post New Training" /></TrainerOnly> },
-      { path: '/trainer/applicants',      element: <TrainerOnly><Placeholder name="Applicants" /></TrainerOnly> },
-      { path: '/trainer/credits',         element: <TrainerOnly><Placeholder name="Credits" /></TrainerOnly> },
-      { path: '/trainer/settings',        element: <TrainerOnly><Placeholder name="Trainer Settings" /></TrainerOnly> },
+      { path: '/trainer/dashboard',                        element: <TrainerOnly><TrainerDashboard /></TrainerOnly> },
+      { path: '/trainer/trainings',                        element: <TrainerOnly><TrainerTrainings /></TrainerOnly> },
+      { path: '/trainer/trainings/new',                    element: <TrainerOnly><TrainerPostTraining /></TrainerOnly> },
+      { path: '/trainer/trainings/:id/applicants',         element: <TrainerOnly><TrainerApplicants /></TrainerOnly> },
+      { path: '/trainer/credits',                          element: <TrainerOnly><TrainerCredits /></TrainerOnly> },
+      { path: '/trainer/settings',                         element: <TrainerOnly><TrainerSettings /></TrainerOnly> },
 
       // Admin
       { path: '/admin/dashboard', element: <AdminOnly><AdminDashboard /></AdminOnly> },
