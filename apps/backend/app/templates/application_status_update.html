@@ -1,63 +1,68 @@
 {% extends "base.html" %}
-{% block title %}Application Update – {{ job_title }}{% endblock %}
+{% block title %}Application Update – {{ title }}{% endblock %}
 
 {% block content %}
-<h2>Application Update</h2>
+<h2 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0F1A1F;font-family:Arial,Helvetica,sans-serif;line-height:1.3;">Application Update</h2>
 
-<p>Hello <strong>{{ applicant_name }}</strong>,</p>
+<p style="margin:0 0 6px;font-size:15px;color:#4B5563;font-family:Arial,Helvetica,sans-serif;line-height:1.7;">
+  Hello <strong style="color:#0F1A1F;">{{ user_name }}</strong>,
+</p>
 
-<p>We have an update on your application for <strong>{{ job_title }}</strong> at <strong>{{ company_name }}</strong>.</p>
+<p style="margin:0 0 20px;font-size:15px;color:#4B5563;font-family:Arial,Helvetica,sans-serif;line-height:1.7;">
+  We have an update on your <strong style="color:#0F1A1F;">{{ application_type }}</strong> application for <strong style="color:#0F1A1F;">{{ title }}</strong>.
+</p>
 
-<div class="info-card">
-  <h3>Application Details</h3>
-  <div class="row"><span class="label">Position</span><span>{{ job_title }}</span></div>
-  <div class="row"><span class="label">Company</span><span>{{ company_name }}</span></div>
-  <div class="row"><span class="label">Applied</span><span>{{ application_date }}</span></div>
-  <div class="row"><span class="label">Reference</span><span>#{{ application_id }}</span></div>
-</div>
+<!-- Update card -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;border:1px solid #E5E7EB;border-radius:12px;background-color:#F9FAFB;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6B7280;font-family:Arial,Helvetica,sans-serif;">Application Details</p>
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 10px;">
+        <tr>
+          <td width="110" valign="top" style="font-size:14px;font-weight:600;color:#6B7280;font-family:Arial,Helvetica,sans-serif;padding-right:10px;">Position</td>
+          <td style="font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;">{{ title }}</td>
+        </tr>
+      </table>
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td width="110" valign="top" style="font-size:14px;font-weight:600;color:#6B7280;font-family:Arial,Helvetica,sans-serif;padding-right:10px;">Type</td>
+          <td style="font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;text-transform:capitalize;">{{ application_type }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
-{% if status == "accepted" %}
-<div class="notice" style="background: #ECFDF5; border-left-color: #10B981;">
-  <strong style="color: #065F46;">🎉 Congratulations — your application has been accepted!</strong><br>
-  Our HR team will be in touch within 24–48 hours with next steps. Well done!
-</div>
+<!-- Status notice -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;">
+  <tr>
+    <td style="background:#E6F9FC;border-left:4px solid #0CC0DF;border-radius:0 10px 10px 0;padding:16px 20px;">
+      <p style="margin:0;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <strong style="color:#0F1A1F;">Your application status has been updated.</strong><br>
+        Log in to your dashboard to see the full details and any next steps.
+      </p>
+    </td>
+  </tr>
+</table>
 
-<div class="info-card">
-  <h3>What's Next</h3>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Expect a call or email from the HR team within 48 hours</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Prepare for contract and onboarding discussions</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Welcome to the {{ company_name }} team!</span></div>
-</div>
+<!-- CTA Button -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+  <tr>
+    <td align="center" bgcolor="#0CC0DF" style="background-color:#0CC0DF;border-radius:50px;padding:0;">
+      <a href="{{ dashboard_url }}"
+         style="display:inline-block;padding:15px 40px;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.2px;border-radius:50px;">
+        View Application
+      </a>
+    </td>
+  </tr>
+</table>
 
-{% elif status == "rejected" %}
-<div class="notice" style="background: #F9FAFB; border-left-color: #9CA3AF;">
-  <strong>Thank you for your application.</strong><br>
-  After careful review, we've decided to move forward with other candidates at this time. We appreciate the time you invested and encourage you to apply for future openings.
-</div>
+<!-- Divider -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
+  <tr><td height="1" bgcolor="#E5E7EB" style="background-color:#E5E7EB;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
 
-{% elif status == "interview" %}
-<div class="notice orange">
-  <strong>📅 You've been invited to interview!</strong><br>
-  Great news — we'd like to move forward. Check your email for scheduling details from the {{ company_name }} team.
-</div>
-
-<div class="info-card">
-  <h3>Interview Prep Tips</h3>
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Research {{ company_name }}'s mission and culture</span></div>
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Prepare examples that show your relevant experience</span></div>
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Bring thoughtful questions about the role</span></div>
-</div>
-
-{% else %}
-<div class="notice">
-  Your application status has been updated to: <strong>{{ status | title }}</strong>
-  {% if message %}<br><br>{{ message }}{% endif %}
-</div>
-{% endif %}
-
-<a href="{{ dashboard_url }}" class="btn-cta">View Application</a>
-
-<div class="divider"></div>
-
-<p style="font-size: 13px; color: #9CA3AF;">This update was sent to {{ applicant_email }}. Questions? Contact us at <a href="mailto:support@climbr.com" style="color: #0CC0DF;">support@climbr.com</a>.</p>
+<p style="margin:0;font-size:13px;color:#9CA3AF;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  Questions? Contact us at <a href="mailto:support@climbr.com" style="color:#FF8A3D;text-decoration:none;">support@climbr.com</a>.
+</p>
 {% endblock %}

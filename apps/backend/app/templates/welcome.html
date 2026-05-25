@@ -1,42 +1,67 @@
 {% extends "base.html" %}
-{% block title %}Welcome to Climbr, {{ first_name }}!{% endblock %}
+{% block title %}Welcome to Climbr!{% endblock %}
 
 {% block content %}
-<h2>Welcome to Climbr, {{ first_name }}! 🎉</h2>
+<h2 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0F1A1F;font-family:Arial,Helvetica,sans-serif;line-height:1.3;">Welcome to Climbr, {{ user_name }}!</h2>
 
-<p>Your account has been verified and you're all set. Welcome to the Climbr community — built to connect ambitious talent with the right opportunities across Africa and beyond.</p>
+<p style="margin:0 0 14px;font-size:15px;color:#4B5563;font-family:Arial,Helvetica,sans-serif;line-height:1.7;">
+  Your account has been verified and you're all set. Welcome to the <strong style="color:#0F1A1F;">Climbr</strong> community — built to connect ambitious talent with the right opportunities across Africa and beyond.
+</p>
 
-<div class="info-card">
-  <h3>What you can do now</h3>
+<!-- What you can do -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;border:1px solid #E5E7EB;border-radius:12px;background-color:#F9FAFB;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6B7280;font-family:Arial,Helvetica,sans-serif;">What you can do now</p>
+      <p style="margin:0 0 10px;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <span style="color:#0CC0DF;font-weight:700;">&#8594;</span> &nbsp;Browse and apply for job openings
+      </p>
+      <p style="margin:0 0 10px;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <span style="color:#0CC0DF;font-weight:700;">&#8594;</span> &nbsp;Complete your professional profile
+      </p>
+      <p style="margin:0 0 10px;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <span style="color:#0CC0DF;font-weight:700;">&#8594;</span> &nbsp;Upload your CV and portfolio
+      </p>
+      <p style="margin:0 0 10px;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <span style="color:#0CC0DF;font-weight:700;">&#8594;</span> &nbsp;Save jobs and track your applications
+      </p>
+      <p style="margin:0;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <span style="color:#0CC0DF;font-weight:700;">&#8594;</span> &nbsp;Enrol in training programs
+      </p>
+    </td>
+  </tr>
+</table>
 
-  {% if user_type == "talent" %}
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Browse and apply for job openings</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Complete your professional profile</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Upload your CV and portfolio</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Save jobs and track your applications</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Enrol in training programs</span></div>
+<!-- CTA Button -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+  <tr>
+    <td align="center" bgcolor="#0CC0DF" style="background-color:#0CC0DF;border-radius:50px;padding:0;">
+      <a href="{{ login_url }}"
+         style="display:inline-block;padding:15px 40px;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.2px;border-radius:50px;">
+        &#128640; &nbsp;Get Started
+      </a>
+    </td>
+  </tr>
+</table>
 
-  {% elif user_type == "employer" %}
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Post job openings and find top candidates</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Search the talent database</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Build your company profile</span></div>
-  <div class="row"><span style="color:#0CC0DF;">→</span><span>Review applications and manage interviews</span></div>
+<!-- Pro tip notice -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;">
+  <tr>
+    <td style="background:#E6F9FC;border-left:4px solid #0CC0DF;border-radius:0 10px 10px 0;padding:16px 20px;">
+      <p style="margin:0;font-size:14px;color:#374151;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+        <strong style="color:#0F1A1F;">&#128161; Pro tip:</strong>
+        Complete your profile within 48 hours to boost your visibility. Users with complete profiles are significantly more likely to be discovered by employers.
+      </p>
+    </td>
+  </tr>
+</table>
 
-  {% elif user_type == "trainer" %}
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Create and publish training programs</span></div>
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Manage enrollments and schedules</span></div>
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Connect with learners and organisations</span></div>
-  <div class="row"><span style="color:#FF8A3D;">→</span><span>Track your training impact</span></div>
-  {% endif %}
-</div>
+<!-- Divider -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
+  <tr><td height="1" bgcolor="#E5E7EB" style="background-color:#E5E7EB;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
 
-<a href="{{ platform_url }}" class="btn-cta">Get Started</a>
-
-<div class="notice">
-  <strong>Pro tip:</strong> Complete your profile within 48 hours to increase your visibility. Users with complete profiles are significantly more likely to be discovered.
-</div>
-
-<div class="divider"></div>
-
-<p>If you have any questions getting started, reach out at <a href="mailto:support@climbr.com" style="color: #0CC0DF;">support@climbr.com</a> — we're happy to help.</p>
+<p style="margin:0;font-size:14px;color:#4B5563;font-family:Arial,Helvetica,sans-serif;line-height:1.7;">
+  If you have any questions getting started, reach out at <a href="mailto:support@climbr.com" style="color:#FF8A3D;text-decoration:none;">support@climbr.com</a> — we're happy to help.
+</p>
 {% endblock %}

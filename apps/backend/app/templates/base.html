@@ -1,286 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>{% block title %}Climbr{% endblock %}</title>
-  <style>
-    /* ── Brand tokens ─────────────────────────────── */
-    :root {
-      --navy:        #0F1A1F;
-      --cyan:        #0CC0DF;
-      --cyan-dark:   #09A6C2;
-      --orange:      #FF8A3D;
-      --orange-soft: #FFF0E5;
-      --cyan-soft:   #E6F9FC;
-      --gray-50:     #F9FAFB;
-      --gray-100:    #F3F4F6;
-      --gray-200:    #E5E7EB;
-      --gray-400:    #9CA3AF;
-      --gray-500:    #6B7280;
-      --gray-600:    #4B5563;
-      --gray-700:    #374151;
-      --gray-800:    #1F2937;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
-      background-color: #F0F4F7;
-      padding: 32px 16px;
-      color: var(--gray-800);
-      line-height: 1.6;
-    }
-
-    /* ── Wrapper ───────────────────────────────────── */
-    .email-wrapper {
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    /* ── Header ───────────────────────────────────── */
-    .email-header {
-      background-color: var(--navy);
-      border-radius: 16px 16px 0 0;
-      padding: 36px 40px;
-      text-align: center;
-    }
-
-    .logo-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-    }
-
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      flex-shrink: 0;
-    }
-
-    .logo-name {
-      font-size: 28px;
-      font-weight: 800;
-      color: #FFFFFF;
-      letter-spacing: -0.5px;
-    }
-
-    .logo-name span {
-      color: var(--cyan);
-    }
-
-    .header-tagline {
-      color: rgba(255,255,255,0.55);
-      font-size: 13px;
-      margin-top: 6px;
-      letter-spacing: 0.3px;
-    }
-
-    /* ── Body card ─────────────────────────────────── */
-    .email-body {
-      background: #FFFFFF;
-      padding: 40px 40px 32px;
-      border-left: 1px solid var(--gray-200);
-      border-right: 1px solid var(--gray-200);
-    }
-
-    /* ── Typography ───────────────────────────────── */
-    .email-body h2 {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 16px;
-      line-height: 1.3;
-    }
-
-    .email-body p {
-      font-size: 15px;
-      color: var(--gray-600);
-      margin-bottom: 14px;
-      line-height: 1.7;
-    }
-
-    .email-body p:last-child { margin-bottom: 0; }
-
-    /* ── CTA button ────────────────────────────────── */
-    .btn-cta {
-      display: block;
-      width: fit-content;
-      margin: 24px auto;
-      padding: 14px 36px;
-      background-color: var(--cyan);
-      color: #FFFFFF !important;
-      font-size: 15px;
-      font-weight: 700;
-      text-decoration: none;
-      border-radius: 50px;
-      text-align: center;
-    }
-
-    .btn-cta-orange {
-      background-color: var(--orange);
-    }
-
-    /* ── Info card ─────────────────────────────────── */
-    .info-card {
-      background: var(--gray-50);
-      border: 1px solid var(--gray-200);
-      border-radius: 12px;
-      padding: 24px;
-      margin: 24px 0;
-    }
-
-    .info-card h3 {
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--gray-500);
-      margin-bottom: 14px;
-    }
-
-    .info-card .row {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-      font-size: 14px;
-      color: var(--gray-700);
-    }
-
-    .info-card .row:last-child { margin-bottom: 0; }
-
-    .info-card .label {
-      font-weight: 600;
-      min-width: 100px;
-      color: var(--gray-500);
-    }
-
-    /* ── Highlight / notice box ───────────────────── */
-    .notice {
-      background: var(--cyan-soft);
-      border-left: 4px solid var(--cyan);
-      border-radius: 0 10px 10px 0;
-      padding: 18px 20px;
-      margin: 24px 0;
-      font-size: 14px;
-      color: var(--gray-700);
-    }
-
-    .notice.orange {
-      background: var(--orange-soft);
-      border-left-color: var(--orange);
-    }
-
-    .notice strong { color: var(--navy); }
-
-    /* ── Code / URL block ─────────────────────────── */
-    .url-block {
-      background: var(--gray-100);
-      border: 1px solid var(--gray-200);
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-size: 12px;
-      font-family: 'Courier New', monospace;
-      word-break: break-all;
-      color: var(--gray-700);
-      margin: 12px 0;
-    }
-
-    /* ── Divider ───────────────────────────────────── */
-    .divider {
-      height: 1px;
-      background: var(--gray-200);
-      margin: 28px 0;
-    }
-
-    /* ── Footer ───────────────────────────────────── */
-    .email-footer {
-      background: var(--gray-50);
-      border: 1px solid var(--gray-200);
-      border-top: none;
-      border-radius: 0 0 16px 16px;
-      padding: 28px 40px;
-      text-align: center;
-    }
-
-    .footer-brand {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: 4px;
-    }
-
-    .footer-brand span { color: var(--cyan); }
-
-    .email-footer p {
-      font-size: 12px;
-      color: var(--gray-400);
-      margin-bottom: 4px;
-      line-height: 1.5;
-    }
-
-    .footer-link {
-      color: var(--cyan) !important;
-      text-decoration: none;
-    }
-
-    /* ── Status badge ─────────────────────────────── */
-    .badge {
-      display: inline-block;
-      padding: 3px 12px;
-      border-radius: 50px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .badge-cyan    { background: var(--cyan-soft); color: var(--cyan-dark); }
-    .badge-orange  { background: var(--orange-soft); color: #C05A0A; }
-    .badge-green   { background: #ECFDF5; color: #065F46; }
-    .badge-red     { background: #FEF2F2; color: #991B1B; }
-
-    @media (max-width: 600px) {
-      .email-header, .email-body, .email-footer { padding-left: 24px; padding-right: 24px; }
-    }
-  </style>
-  {% block extra_css %}{% endblock %}
 </head>
-<body>
-  <div class="email-wrapper">
+<body style="margin:0;padding:0;background-color:#F0F4F7;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#F0F4F7" style="background-color:#F0F4F7;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;">
 
-    <!-- Header -->
-    <div class="email-header">
-      <div class="logo-row">
-        <!-- Mountain icon (inline SVG — works in all email clients) -->
-        <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="40" height="40" rx="10" fill="#1A2E38"/>
-          <polygon points="20,6 33,30 7,30" fill="#0CC0DF"/>
-          <polygon points="20,15 25,30 15,30" fill="#0F1A1F" opacity="0.35"/>
-          <circle cx="20" cy="6" r="3.2" fill="#FF8A3D"/>
-        </svg>
-        <span class="logo-name">Climbr</span>
-      </div>
-      <p class="header-tagline">Connecting Talent with Opportunity</p>
-    </div>
+          <!-- HEADER -->
+          <tr>
+            <td align="center" bgcolor="#FF8A3D" style="background-color:#FF8A3D;border-radius:16px 16px 0 0;padding:32px 40px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td valign="middle" style="padding-right:10px;">
+                    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                      <rect width="44" height="44" rx="11" fill="rgba(255,255,255,0.18)"/>
+                      <polygon points="22,7 36,34 8,34" fill="#FFFFFF"/>
+                      <polygon points="22,17 27,34 17,34" fill="rgba(255,138,61,0.45)"/>
+                      <circle cx="22" cy="7" r="3.5" fill="#0CC0DF"/>
+                    </svg>
+                  </td>
+                  <td valign="middle">
+                    <span style="font-size:30px;font-weight:800;color:#0CC0DF;letter-spacing:-0.5px;font-family:Arial,Helvetica,sans-serif;line-height:1;">Climbr</span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:10px 0 0;color:rgba(255,255,255,0.85);font-size:13px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px;">Connecting Talent with Opportunity</p>
+            </td>
+          </tr>
 
-    <!-- Body -->
-    <div class="email-body">
-      {% block content %}{% endblock %}
-    </div>
+          <!-- BODY -->
+          <tr>
+            <td bgcolor="#FFFFFF" style="background:#FFFFFF;padding:40px 40px 32px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
 
-    <!-- Footer -->
-    <div class="email-footer">
-      <p class="footer-brand">Climbr</p>
-      <p>Your career growth platform</p>
-      <div class="divider" style="margin: 16px 0;"></div>
-      <p>
-        This email was sent because you have an account with Climbr.<br>
-        Need help? <a class="footer-link" href="mailto:support@climbr.com">support@climbr.com</a>
-      </p>
-      <p style="margin-top: 8px;">© 2025 Climbr. All rights reserved.</p>
-    </div>
+          <!-- FOOTER -->
+          <tr>
+            <td align="center" bgcolor="#F9FAFB" style="background:#F9FAFB;padding:24px 40px 28px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;border-radius:0 0 16px 16px;">
+              <p style="margin:0 0 3px;font-size:15px;font-weight:700;color:#0F1A1F;font-family:Arial,Helvetica,sans-serif;">Climbr</p>
+              <p style="margin:0 0 12px;font-size:12px;color:#9CA3AF;font-family:Arial,Helvetica,sans-serif;">Your career growth platform</p>
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="80%" style="margin:0 auto 12px;">
+                <tr><td height="1" bgcolor="#E5E7EB" style="background-color:#E5E7EB;font-size:0;line-height:0;">&nbsp;</td></tr>
+              </table>
+              <p style="margin:0;font-size:11px;color:#9CA3AF;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+                Sent because you have a Climbr account &nbsp;&bull;&nbsp;
+                <a href="mailto:support@climbr.com" style="color:#FF8A3D;text-decoration:none;">support@climbr.com</a>
+              </p>
+              <p style="margin:6px 0 0;font-size:11px;color:#C4CDD6;font-family:Arial,Helvetica,sans-serif;">&copy; 2025 Climbr. All rights reserved.</p>
+            </td>
+          </tr>
 
-  </div>
-  {% block extra_js %}{% endblock %}
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
