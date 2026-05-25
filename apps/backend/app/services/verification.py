@@ -45,7 +45,8 @@ class VerificationService:
             if not user:
                 return False, "Invalid verification token"
 
-            if not user.verification_token_expires or user.verification_token_expires < datetime.now(timezone.utc):
+            expires = user.verification_token_expires
+            if not expires or expires.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
                 return False, "Verification token has expired"
 
             user.is_verified = True
@@ -94,7 +95,8 @@ class VerificationService:
             if not user:
                 return False, None, "Invalid password reset token"
 
-            if not user.password_reset_expires or user.password_reset_expires < datetime.now(timezone.utc):
+            reset_expires = user.password_reset_expires
+            if not reset_expires or reset_expires.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
                 return False, None, "Password reset token has expired"
 
             return True, user, "Valid password reset token"
