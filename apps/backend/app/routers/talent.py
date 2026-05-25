@@ -45,7 +45,7 @@ async def get_profile(
     # Construct the profile response
     profile = {
         "id": talent.id,
-        "email": talent.email,
+        "email": talent.user.email if talent.user else None,
         "first_name": talent.first_name,
         "last_name": talent.last_name,
         "phone": talent.phone,
@@ -1374,7 +1374,7 @@ async def update_profile_settings(
         "profile": {
             "first_name": updated_talent.first_name,
             "last_name": updated_talent.last_name,
-            "email": updated_talent.email,
+            "email": updated_talent.user.email if updated_talent.user else None,
             "phone": updated_talent.phone,
             "bio": updated_talent.bio
         }
