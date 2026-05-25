@@ -170,7 +170,7 @@ async def register(
         # Send verification email in background
         if background_tasks and request:
             base_url = str(request.base_url)
-            await VerificationService.send_verification_email(db, user, base_url, background_tasks)
+            await VerificationService.send_verification_email(db, user, base_url)
 
         return _auth_response(user)
 
