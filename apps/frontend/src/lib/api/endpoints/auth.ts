@@ -20,4 +20,5 @@ export const authEndpoints = {
   resetPassword:  (token: string, password: string) =>
     api.post('auth/reset-password', { json: { token, new_password: password } }).json<void>(),
   resendVerification: (email: string)  => api.post('auth/resend-verification', { json: { email } }).json<void>(),
+  verifyEmail:        (token: string)   => api.post('auth/verify-email',        { searchParams: { token } }).json<{ message: string }>(),
 }
