@@ -12,6 +12,7 @@ from app.config import settings
 from app.routers import talent, employer, trainer, admin, public, auth, payments, messages, profile_views
 from app.setup import setup_directories
 from app.services.archiving import ArchivingService
+from app.init_db import init_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -144,6 +145,7 @@ async def startup_event():
     logger.info("Starting up Climbr API (env=%s)", settings.ENVIRONMENT)
     logger.info("Templates directory: %s", directories["templates_dir"])
     logger.info("CORS allowed origins: %s", settings.cors_origins_list)
+    init_db()
     await ArchivingService.setup_scheduled_archiving(app)
 
 
