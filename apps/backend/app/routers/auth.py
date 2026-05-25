@@ -168,9 +168,8 @@ async def register(
             raise HTTPException(status_code=400, detail="Invalid role")
 
         # Send verification email in background
-        if background_tasks and request:
-            base_url = str(request.base_url)
-            await VerificationService.send_verification_email(db, user, base_url)
+        if background_tasks:
+            await VerificationService.send_verification_email(db, user)
 
         return _auth_response(user)
 
@@ -194,7 +193,6 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
 @router.post("/resend-verification")
 async def resend_verification_email(
     email: str,
-    request: Request,
     db: Session = Depends(get_db),
 ):
     user = auth_service.get_user_by_email(db, email)
@@ -202,8 +200,7 @@ async def resend_verification_email(
         raise HTTPException(status_code=404, detail="User not found")
     if user.is_verified:
         return {"message": "Email is already verified"}
-    base_url = str(request.base_url)
-    success, message = await VerificationService.send_verification_email(db, user, base_url)
+    success, message = await VerificationService.send_verification_email(db, user)
     if not success:
         raise HTTPException(status_code=500, detail=message)
     return {"message": "Verification email sent successfully"}
@@ -212,11 +209,10 @@ async def resend_verification_email(
 # ── Password reset ─────────────────────────────────────────────────────────────
 
 @router.post("/forgot-password")
-async def forgot_password(email: str, request: Request, db: Session = Depends(get_db)):
+async def forgot_password(email: str, db: Session = Depends(get_db)):
     user = auth_service.get_user_by_email(db, email)
     if user:
-        base_url = str(request.base_url)
-        await VerificationService.send_password_reset_email(db, user, base_url)
+        await VerificationService.send_password_reset_email(db, user)
     return {"message": "If the email exists, a password reset link has been sent"}
 
 

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models.database_models import User
 from app.services.email import EmailService
 
@@ -58,13 +59,13 @@ class VerificationService:
             return False, str(e)
 
     @staticmethod
-    async def send_verification_email(db: Session, user: User, base_url: str) -> Tuple[bool, str]:
+    async def send_verification_email(db: Session, user: User) -> Tuple[bool, str]:
         try:
             success, token = await VerificationService.create_verification_token(db, user)
             if not success:
                 return False, f"Failed to create verification token: {token}"
 
-            verification_link = f"{base_url}/verify-email?token={token}"
+            verification_link = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
             await EmailService.send_verification_email(user.email, verification_link)
             return True, "Verification email sent successfully"
         except Exception as e:
@@ -102,13 +103,13 @@ class VerificationService:
             return False, None, str(e)
 
     @staticmethod
-    async def send_password_reset_email(db: Session, user: User, base_url: str) -> Tuple[bool, str]:
+    async def send_password_reset_email(db: Session, user: User) -> Tuple[bool, str]:
         try:
             success, token = await VerificationService.create_password_reset_token(db, user)
             if not success:
                 return False, f"Failed to create password reset token: {token}"
 
-            reset_link = f"{base_url}/reset-password?token={token}"
+            reset_link = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
             await EmailService.send_password_reset_email(user.email, reset_link)
             return True, "Password reset email sent successfully"
         except Exception as e:
