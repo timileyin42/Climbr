@@ -820,8 +820,8 @@ async def get_all_applications(
         Job.title.label('title'),
         Employer.company_name.label('company_provider'),
         func.literal('Job').label('type')
-    ).join(Job).join(Employer).filter(JobApplication.talent_id == talent_id)
-    
+    ).join(Job, JobApplication.job_id == Job.id).join(Employer, Job.employer_id == Employer.id).filter(JobApplication.talent_id == talent_id)
+
     # Get training applications with training and trainer details
     training_applications_query = db.query(
         TrainingApplication.id,
@@ -830,7 +830,7 @@ async def get_all_applications(
         Training.title.label('title'),
         Trainer.provider_name.label('company_provider'),
         func.literal('Training').label('type')
-    ).join(Training).join(Trainer).filter(TrainingApplication.talent_id == talent_id)
+    ).join(Training, TrainingApplication.training_id == Training.id).join(Trainer, Training.trainer_id == Trainer.id).filter(TrainingApplication.talent_id == talent_id)
     
     # Apply filters
     if status_filter:
