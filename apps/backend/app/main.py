@@ -4,11 +4,11 @@ import uuid
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from app.config import settings
+from app.limiter import limiter
 from app.routers import talent, employer, trainer, admin, public, auth, payments, messages, profile_views
 from app.setup import setup_directories
 from app.services.archiving import ArchivingService
@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 directories = setup_directories()
 
-# ── Rate limiter ───────────────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 
 app = FastAPI(
     title="Climbr API",

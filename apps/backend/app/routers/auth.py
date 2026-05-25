@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 
 from app.database import get_db
+from app.limiter import limiter
 from app.models.database_models import User, UserType
 from app.services.auth import AuthService
 from app.services.verification import VerificationService
@@ -88,7 +89,8 @@ class RegisterPayload(BaseModel):
 
 
 @router.post("/login")
-async def login(credentials: LoginPayload, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: LoginPayload, db: Session = Depends(get_db)):
     user = auth_service.authenticate_user(db, credentials.email, credentials.password)
     if not user:
         raise HTTPException(
@@ -117,9 +119,10 @@ _EMPLOYER_ONLY_FIELDS = {"company_name", "contact_name", "phone", "website",
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def register(
+    request: Request,
     payload: RegisterPayload,
-    request: Request = None,
     background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
 ):
@@ -209,7 +212,8 @@ async def resend_verification_email(
 # ── Password reset ─────────────────────────────────────────────────────────────
 
 @router.post("/forgot-password")
-async def forgot_password(email: str, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, email: str, db: Session = Depends(get_db)):
     user = auth_service.get_user_by_email(db, email)
     if user:
         await VerificationService.send_password_reset_email(db, user)
