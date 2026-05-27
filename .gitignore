@@ -53,3 +53,4 @@ coverage/
 .nyc_output/
 irxcruit.zip
 .figma/
+clear_db.sh
