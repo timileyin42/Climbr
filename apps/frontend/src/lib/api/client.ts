@@ -1,4 +1,4 @@
-import ky from 'ky'
+import ky, { type HTTPError } from 'ky'
 import { useAuthStore } from '@/lib/auth/store'
 
 export const api = ky.create({
@@ -18,6 +18,15 @@ export const api = ky.create({
           window.location.href = '/login'
         }
         return response
+      },
+    ],
+    beforeError: [
+      async (error: HTTPError) => {
+        try {
+          const body = await error.response.clone().json() as { detail?: string }
+          if (body.detail) error.message = body.detail
+        } catch { /* non-JSON error body — keep default message */ }
+        return error
       },
     ],
   },
