@@ -57,9 +57,7 @@ export function useGoogleSignIn(role?: 'talent' | 'employer' | 'trainer') {
     },
     onSuccess: (data) => {
       handleAuthResponse(data)
-      // New talent users → onboarding; returning users → dashboard
-      if (data.is_new && data.user.role === 'talent') navigate('/onboarding')
-      else if (data.user.role === 'talent' && !data.user.profile_complete) navigate('/onboarding')
+      if (data.user.role === 'talent') navigate('/onboarding')
       else navigate(dashboardFor(data.user.role))
     },
     onError: () => toast.error('Google sign-in failed'),
