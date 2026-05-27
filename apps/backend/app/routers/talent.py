@@ -13,7 +13,7 @@ from app.services.job import JobService
 from app.services.training import TrainingService
 from app.dependencies.auth import get_current_talent
 from app.models.user_models import (EducationBase, EducationCreate, EducationOut, CertificateBase, CertificateCreate, CertificateOut, WorkExperienceBase, WorkExperienceCreate, WorkExperienceOut, HobbyBase, HobbyCreate, HobbyOut, LanguageBase, LanguageCreate, LanguageOut, TalentProfile, TalentUpdate, TalentDashboard, QuickAction, SkillBase, SkillCreate, SkillOut)
-from app.models.job_models import SavedJobOut
+from app.models.job_models import SavedJobOut, JobListing
 from app.models.database_models import (
     User, Talent, Job, Training, JobApplication, TrainingApplication,
     SavedJob, SavedTraining, Employer, Trainer, Skill, Certificate,
@@ -1276,7 +1276,10 @@ async def get_talent_dashboard(
     
     # Get featured jobs (this would typically be jobs recommended for the talent)
     # For now, we'll just get the latest active jobs
-    featured_jobs = JobService.get_jobs(db, limit=5)
+    featured_jobs = [
+        JobListing.model_validate(job).model_dump()
+        for job in JobService.get_jobs(db, limit=5)
+    ]
     
     # Construct the dashboard response
     dashboard = {
