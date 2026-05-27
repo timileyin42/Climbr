@@ -9,8 +9,8 @@ export interface Education {
   start_year: number; end_year?: number; current?: boolean
 }
 export interface WorkExperience {
-  id: number; company: string; role: string; description?: string
-  start_date: string; end_date?: string; current?: boolean
+  id: number; company: string; position: string; description?: string
+  start_date: string; end_date?: string; is_current?: boolean; location?: string
 }
 export interface Certificate { id: number; name: string; issuer: string; issue_date?: string; url?: string }
 export interface Hobby { id: number; name: string }

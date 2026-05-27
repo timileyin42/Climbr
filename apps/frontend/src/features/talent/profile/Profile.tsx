@@ -127,11 +127,11 @@ function ChipSection({
 // ── Work Experience ───────────────────────────────────────────────────────────
 
 const workSchema = z.object({
-  role:       z.string().min(1, 'Required'),
+  position:   z.string().min(1, 'Required'),
   company:    z.string().min(1, 'Required'),
   start_date: z.string().min(1, 'Required'),
   end_date:   z.string().optional(),
-  current:    z.boolean().optional(),
+  is_current: z.boolean().optional(),
 })
 type WorkForm = z.infer<typeof workSchema>
 
@@ -167,8 +167,8 @@ function WorkSection({ items }: { items: WorkExperience[] }) {
               {w.company.charAt(0)}
             </div>
             <div>
-              <p className="text-[14px] font-[600] text-[var(--color-text-primary)]">{w.role}</p>
-              <p className="text-[13px] text-[var(--color-text-secondary)]">{w.company} · {w.start_date} – {w.current ? 'Present' : (w.end_date ?? '')}</p>
+              <p className="text-[14px] font-[600] text-[var(--color-text-primary)]">{w.position}</p>
+              <p className="text-[13px] text-[var(--color-text-secondary)]">{w.company} · {w.start_date} – {w.is_current ? 'Present' : (w.end_date ?? '')}</p>
             </div>
           </div>
         ))}
@@ -179,8 +179,8 @@ function WorkSection({ items }: { items: WorkExperience[] }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] font-[600] text-[var(--color-text-primary)] mb-1">Role</label>
-              <Input placeholder="Frontend Engineer" {...register('role')} />
-              {errors.role && <p className="text-[11px] text-[var(--color-brand-pink)] mt-0.5">{errors.role.message}</p>}
+              <Input placeholder="Frontend Engineer" {...register('position')} />
+              {errors.position && <p className="text-[11px] text-[var(--color-brand-pink)] mt-0.5">{errors.position.message}</p>}
             </div>
             <div>
               <label className="block text-[12px] font-[600] text-[var(--color-text-primary)] mb-1">Company</label>

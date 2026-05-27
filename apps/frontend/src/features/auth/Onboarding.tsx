@@ -401,11 +401,11 @@ function Step4Certificates({
 
 const workSchema = z.object({
   company:    z.string().min(2, 'Required'),
-  role:       z.string().min(2, 'Required'),
+  position:   z.string().min(2, 'Required'),
   description:z.string().optional(),
   start_date: z.string().min(1, 'Required'),
   end_date:   z.string().optional(),
-  current:    z.boolean().optional(),
+  is_current: z.boolean().optional(),
 })
 type WorkForm = z.infer<typeof workSchema>
 
@@ -420,9 +420,9 @@ function Step5WorkExperience({
 }) {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<WorkForm>({
     resolver: zodResolver(workSchema),
-    defaultValues: { current: false },
+    defaultValues: { is_current: false },
   })
-  const isCurrent = watch('current')
+  const isCurrent = watch('is_current')
 
   const save = useMutation({
     mutationFn: (v: WorkForm) => talentApi.addWorkExperience(v),
@@ -445,8 +445,8 @@ function Step5WorkExperience({
         </div>
         <div>
           <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Role / Title</label>
-          <Input placeholder="Frontend Engineer" {...register('role')} />
-          {errors.role && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.role.message}</p>}
+          <Input placeholder="Frontend Engineer" {...register('position')} />
+          {errors.position && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.position.message}</p>}
         </div>
         <div>
           <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
@@ -471,7 +471,7 @@ function Step5WorkExperience({
           </div>
         </div>
         <label className="flex items-center gap-2 text-[13px] text-[var(--color-text-primary)] cursor-pointer">
-          <input type="checkbox" {...register('current')} className="accent-[var(--color-brand-cyan)]" />
+          <input type="checkbox" {...register('is_current')} className="accent-[var(--color-brand-cyan)]" />
           I currently work here
         </label>
       </div>
