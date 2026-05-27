@@ -3,7 +3,7 @@ import { Navigate, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/lib/auth/store'
+import { useAuthStore, type UserRole } from '@/lib/auth/store'
 import { authEndpoints } from '@/lib/api/endpoints/auth'
 import { useLogout } from '@/lib/api/queries/useAuth'
 
@@ -17,12 +17,16 @@ export function Component() {
 
   const verify = useMutation({
     mutationFn: (t: string) => authEndpoints.verifyEmail(t),
-    onSuccess: () => {
-      toast.success('Email verified! Redirecting…')
-      // Go to onboarding if the user is already in session, otherwise login
-      const authed = useAuthStore.getState().user
-      const dest = authed?.role === 'talent' ? '/onboarding' : '/login'
-      setTimeout(() => navigate(dest, { replace: true }), 2000)
+    onSuccess: (data) => {
+      // Log the user in automatically using the tokens returned by the verify endpoint
+      useAuthStore.getState().setAuth(
+        { id: data.user.id, email: data.user.email, firstName: data.user.first_name,
+          lastName: data.user.last_name, role: data.user.role as UserRole,
+          isVerified: data.user.is_verified },
+        data.access_token,
+      )
+      toast.success('Email verified! Setting up your profile…')
+      setTimeout(() => navigate('/onboarding', { replace: true }), 1500)
     },
   })
 
