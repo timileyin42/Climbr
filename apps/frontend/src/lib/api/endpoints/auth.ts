@@ -5,10 +5,11 @@ export interface RegisterPayload {
   email: string; password: string; first_name: string; last_name: string
   role: 'talent' | 'employer' | 'trainer'
 }
-export interface FirebaseAuthPayload { id_token: string; role?: 'talent' | 'employer' | 'trainer' }
+export interface FirebaseAuthPayload { id_token: string; user_type?: 'talent' | 'employer' | 'trainer' }
 export interface AuthResponse {
   access_token: string; token_type: string
-  user: { id: number; email: string; first_name: string; last_name: string; role: string; is_verified: boolean }
+  is_new?: boolean
+  user: { id: number; email: string; first_name: string; last_name: string; role: string; is_verified: boolean; profile_complete?: boolean }
 }
 
 export const authEndpoints = {

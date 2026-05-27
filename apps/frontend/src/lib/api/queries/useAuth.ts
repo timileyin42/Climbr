@@ -53,12 +53,13 @@ export function useGoogleSignIn(role?: 'talent' | 'employer' | 'trainer') {
     mutationFn: async () => {
       const result = await signInWithPopup(auth, googleProvider)
       const idToken = await result.user.getIdToken()
-      return authEndpoints.firebase({ id_token: idToken, role })
+      return authEndpoints.firebase({ id_token: idToken, user_type: role })
     },
     onSuccess: (data) => {
       handleAuthResponse(data)
-      // All talent users go through onboarding — the page auto-skips if profile already set
-      if (data.user.role === 'talent') navigate('/onboarding')
+      // New talent users → onboarding; returning users → dashboard
+      if (data.is_new && data.user.role === 'talent') navigate('/onboarding')
+      else if (data.user.role === 'talent' && !data.user.profile_complete) navigate('/onboarding')
       else navigate(dashboardFor(data.user.role))
     },
     onError: () => toast.error('Google sign-in failed'),
