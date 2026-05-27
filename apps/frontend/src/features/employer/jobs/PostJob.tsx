@@ -51,8 +51,10 @@ export function Component() {
   const [basics, setBasics] = useState<BasicsForm | null>(null)
 
   const { data: creditsData } = useEmployerCredits()
-  const credits = creditsData?.job_credits ?? 0
-  const create  = useCreateJob()
+  const credits   = creditsData?.job_credits ?? 0
+  const freePosts = creditsData?.free_posts_remaining ?? 2
+  const canPost   = credits > 0 || freePosts > 0
+  const create    = useCreateJob()
 
   const form1 = useForm<BasicsForm>({ resolver: zodResolver(basicsSchema), defaultValues: { job_type: 'full_time' } })
   const form2 = useForm<DetailsForm>({ resolver: zodResolver(detailsSchema) })
@@ -81,7 +83,7 @@ export function Component() {
     create.mutate(payload, { onSuccess: () => navigate('/employer/jobs') })
   }
 
-  if (credits === 0) {
+  if (!canPost) {
     return (
       <div className="max-w-md mx-auto text-center py-20">
         <div className="w-16 h-16 rounded-full bg-[var(--color-brand-orange-soft)] flex items-center justify-center mx-auto mb-5">
@@ -102,7 +104,9 @@ export function Component() {
     <div className="max-w-xl mx-auto">
       <h1 className="text-[28px] font-[700] text-[var(--color-brand-navy)] mb-2">Post a Job</h1>
       <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
-        {credits} credit{credits > 1 ? 's' : ''} remaining · 1 credit will be used.
+        {freePosts > 0
+          ? `${freePosts} free post${freePosts > 1 ? 's' : ''} remaining this month · no credit used`
+          : `${credits} credit${credits > 1 ? 's' : ''} remaining · 1 credit will be used`}
       </p>
 
       <StepDots current={step} />
