@@ -28,8 +28,9 @@ export function Component() {
   const { id }    = useParams<{ id: string }>()
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
-  const [confirm, setConfirm] = useState(false)
-  const [applied, setApplied] = useState(false)
+  const [confirm, setConfirm]         = useState(false)
+  const [applied, setApplied]         = useState(false)
+  const [coverLetter, setCoverLetter] = useState('')
 
   const { data: job, isLoading, isError } = useJob(Number(id))
   const { data: savedData }               = useSavedJobs()
@@ -46,8 +47,8 @@ export function Component() {
   }
 
   function confirmApply() {
-    applyJob.mutate(Number(id), {
-      onSuccess: () => { setApplied(true); setConfirm(false) },
+    applyJob.mutate({ jobId: Number(id), coverLetter: coverLetter.trim() || undefined }, {
+      onSuccess: () => { setApplied(true); setConfirm(false); setCoverLetter('') },
     })
   }
 
@@ -189,19 +190,38 @@ export function Component() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[var(--radius-xl)] p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[18px] font-[700] text-[var(--color-text-primary)]">Confirm Application</h2>
+              <h2 className="text-[18px] font-[700] text-[var(--color-text-primary)]">Apply for {job.title}</h2>
               <button type="button" onClick={() => setConfirm(false)} className="p-1 hover:bg-[var(--color-bg-tertiary)] rounded-[var(--radius-md)]">
                 <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
               </button>
             </div>
-            <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
-              Apply to <strong>{job.title}</strong> at <strong>{job.employer_name}</strong>?
-              Your profile will be shared with the employer.
-            </p>
+
+            {/* CV confirmation */}
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] mb-4">
+              <Briefcase className="w-4 h-4 text-[var(--color-text-tertiary)] shrink-0" />
+              <p className="text-[13px] text-[var(--color-text-secondary)]">
+                Your uploaded CV &amp; profile will be shared with <strong>{job.employer_name}</strong>.
+              </p>
+            </div>
+
+            {/* Cover letter */}
+            <div className="mb-5">
+              <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+                Cover letter <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+              </label>
+              <textarea
+                rows={5}
+                placeholder="Introduce yourself, why you're a great fit…"
+                value={coverLetter}
+                onChange={(e) => setCoverLetter(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] text-[14px] bg-white resize-none outline-none focus:border-[var(--color-brand-navy)] transition-colors text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)]"
+              />
+            </div>
+
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setConfirm(false)}>Cancel</Button>
               <Button className="flex-1" onClick={confirmApply} disabled={applyJob.isPending}>
-                {applyJob.isPending ? 'Applying…' : 'Confirm'}
+                {applyJob.isPending ? 'Applying…' : 'Submit Application'}
               </Button>
             </div>
           </div>

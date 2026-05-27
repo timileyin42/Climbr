@@ -17,6 +17,13 @@ from app.repositories.saved_job_repository import SavedJobRepository
 from app.repositories.notification_repository import NotificationRepository
 
 
+def _annotate_job(job) -> None:
+    """Set employer_name and applicant_count on a Job ORM object loaded without the repo JOIN."""
+    job.employer_name = job.employer.company_name if job.employer else ""
+    if not hasattr(job, 'applicant_count') or job.applicant_count is None:
+        job.applicant_count = 0
+
+
 class UserService:
     # ------------------------------------------------------------------
     # Skill methods
@@ -590,9 +597,11 @@ class UserService:
         saved_jobs = (
             db.query(SavedJob)
             .filter(SavedJob.talent_id == talent_id)
-            .options(joinedload(SavedJob.job))
+            .options(joinedload(SavedJob.job).joinedload(Job.employer))
             .all()
         )
+        for sj in saved_jobs:
+            _annotate_job(sj.job)
         return [SavedJobOut.from_orm(sj) for sj in saved_jobs]
 
     @staticmethod
@@ -613,19 +622,21 @@ class UserService:
         existing = (
             db.query(SavedJob)
             .filter(SavedJob.talent_id == talent_id, SavedJob.job_id == job_id)
+            .options(joinedload(SavedJob.job).joinedload(Job.employer))
             .first()
         )
         if existing:
-            db.refresh(existing)
+            _annotate_job(existing.job)
             return SavedJobOut.from_orm(existing)
 
         saved_job = repo.save(job_id=job_id, talent_id=talent_id)
         saved_job_with_job = (
             db.query(SavedJob)
             .filter(SavedJob.id == saved_job.id)
-            .options(joinedload(SavedJob.job))
+            .options(joinedload(SavedJob.job).joinedload(Job.employer))
             .first()
         )
+        _annotate_job(saved_job_with_job.job)
         return SavedJobOut.from_orm(saved_job_with_job)
 
     @staticmethod

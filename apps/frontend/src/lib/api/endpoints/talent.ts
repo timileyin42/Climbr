@@ -84,7 +84,8 @@ export const talentApi = {
   profile:       () => api.get('talent/profile').json<TalentProfile>(),
   updateProfile: (body: Record<string, unknown>) => api.put('talent/profile', { json: body }).json<TalentProfile>(),
 
-  applyJob:       (jobId: number)      => api.post(`talent/jobs/${jobId}/apply`).json<void>(),
+  applyJob: ({ jobId, coverLetter }: { jobId: number; coverLetter?: string }) =>
+    api.post(`talent/jobs/${jobId}/apply`, coverLetter ? { json: { cover_letter: coverLetter } } : {}).json<void>(),
   applyTraining:  (trainingId: number) => api.post(`talent/trainings/${trainingId}/apply`).json<void>(),
 
   applications: (params?: { status?: string; type?: string; skip?: number; limit?: number }) => {
