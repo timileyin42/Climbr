@@ -7,6 +7,7 @@ from app.database import get_db
 from app.limiter import limiter
 from app.models.database_models import User, UserType
 from app.services.auth import AuthService
+from app.services.email import EmailService
 from app.services.verification import VerificationService
 from app.services.firebase import verify_firebase_id_token
 from app.dependencies.auth import get_current_user
@@ -304,7 +305,18 @@ async def firebase_sign_in(
         created_user.is_verified = True
         db.commit()
 
-        return _auth_response(created_user)
+        # Send welcome email in the background — don't block the response
+        import asyncio as _asyncio
+        _asyncio.create_task(
+            EmailService.send_welcome_email(
+                created_user.email,
+                f"{first_name} {last_name}".strip() or created_user.email,
+            )
+        )
+
+        response = _auth_response(created_user)
+        response["is_new"] = True
+        return response
 
     except HTTPException:
         raise
