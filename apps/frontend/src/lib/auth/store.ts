@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'climbr-auth',
-      partialize: (s) => ({ theme: s.theme }),
+      partialize: (s) => ({ theme: s.theme, user: s.user, accessToken: s.accessToken }),
     }
   )
 )
