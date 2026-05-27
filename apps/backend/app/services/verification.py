@@ -37,27 +37,28 @@ class VerificationService:
             return False, str(e)
 
     @staticmethod
-    async def verify_email(db: Session, token: str) -> Tuple[bool, str]:
+    async def verify_email(db: Session, token: str) -> Tuple[bool, str, Optional[User]]:
         try:
             token_hash = _hash_token(token)
             user = db.query(User).filter(User.verification_token_hash == token_hash).first()
 
             if not user:
-                return False, "Invalid verification token"
+                return False, "Invalid verification token", None
 
             expires = user.verification_token_expires
             if not expires or expires.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-                return False, "Verification token has expired"
+                return False, "Verification token has expired", None
 
             user.is_verified = True
             user.verification_token_hash = None
             user.verification_token_expires = None
             db.commit()
-            return True, "Email verified successfully"
+            db.refresh(user)
+            return True, "Email verified successfully", user
         except Exception as e:
             db.rollback()
             logger.error(f"Error verifying email: {e}")
-            return False, str(e)
+            return False, str(e), None
 
     @staticmethod
     async def send_verification_email(db: Session, user: User) -> Tuple[bool, str]:

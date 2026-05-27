@@ -195,10 +195,12 @@ async def register(
 
 @router.post("/verify-email")
 async def verify_email(token: str, db: Session = Depends(get_db)):
-    success, message = await VerificationService.verify_email(db, token)
+    success, message, user = await VerificationService.verify_email(db, token)
     if not success:
         raise HTTPException(status_code=400, detail=message)
-    return {"message": message}
+    # Return full auth response so the frontend can log the user in automatically
+    # and redirect straight to onboarding without requiring a second login.
+    return _auth_response(user)
 
 
 @router.post("/resend-verification")
