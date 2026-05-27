@@ -36,6 +36,7 @@ const TalentSettings = lazy(() => import('@/features/talent/settings/Settings').
 const EmployerJobs           = lazy(() => import('@/features/employer/jobs/Jobs').then((m) => ({ default: m.Component })))
 const EmployerPostJob        = lazy(() => import('@/features/employer/jobs/PostJob').then((m) => ({ default: m.Component })))
 const EmployerJobApplicants  = lazy(() => import('@/features/employer/jobs/JobApplicants').then((m) => ({ default: m.Component })))
+const EmployerApplicants     = lazy(() => import('@/features/employer/applicants/Applicants').then((m) => ({ default: m.Component })))
 const EmployerCredits        = lazy(() => import('@/features/employer/credits/Credits').then((m) => ({ default: m.Component })))
 const EmployerSettings       = lazy(() => import('@/features/employer/settings/Settings').then((m) => ({ default: m.Component })))
 
@@ -43,6 +44,7 @@ const EmployerSettings       = lazy(() => import('@/features/employer/settings/S
 const TrainerTrainings       = lazy(() => import('@/features/trainer/trainings/Trainings').then((m) => ({ default: m.Component })))
 const TrainerPostTraining    = lazy(() => import('@/features/trainer/trainings/PostTraining').then((m) => ({ default: m.Component })))
 const TrainerApplicants      = lazy(() => import('@/features/trainer/trainings/TrainingApplicants').then((m) => ({ default: m.Component })))
+const TrainerApplicantsOverview = lazy(() => import('@/features/trainer/applicants/Applicants').then((m) => ({ default: m.Component })))
 const TrainerCredits         = lazy(() => import('@/features/trainer/credits/Credits').then((m) => ({ default: m.Component })))
 const TrainerSettings        = lazy(() => import('@/features/trainer/settings/Settings').then((m) => ({ default: m.Component })))
 
@@ -138,6 +140,7 @@ export const router = createBrowserRouter([
       { path: '/employer/jobs/new',               element: <EmployerOnly><EmployerPostJob /></EmployerOnly> },
       { path: '/employer/jobs/:id',               element: <EmployerOnly><Placeholder name="Job Detail (Employer)" /></EmployerOnly> },
       { path: '/employer/jobs/:id/applicants',    element: <EmployerOnly><EmployerJobApplicants /></EmployerOnly> },
+      { path: '/employer/applicants',             element: <EmployerOnly><EmployerApplicants /></EmployerOnly> },
       { path: '/employer/messages',               element: <EmployerOnly><MessagesPage /></EmployerOnly> },
       { path: '/employer/credits',                element: <EmployerOnly><EmployerCredits /></EmployerOnly> },
       { path: '/employer/settings',               element: <EmployerOnly><EmployerSettings /></EmployerOnly> },
@@ -147,6 +150,7 @@ export const router = createBrowserRouter([
       { path: '/trainer/trainings',                        element: <TrainerOnly><TrainerTrainings /></TrainerOnly> },
       { path: '/trainer/trainings/new',                    element: <TrainerOnly><TrainerPostTraining /></TrainerOnly> },
       { path: '/trainer/trainings/:id/applicants',         element: <TrainerOnly><TrainerApplicants /></TrainerOnly> },
+      { path: '/trainer/applicants',                       element: <TrainerOnly><TrainerApplicantsOverview /></TrainerOnly> },
       { path: '/trainer/messages',                         element: <TrainerOnly><MessagesPage /></TrainerOnly> },
       { path: '/trainer/credits',                          element: <TrainerOnly><TrainerCredits /></TrainerOnly> },
       { path: '/trainer/settings',                         element: <TrainerOnly><TrainerSettings /></TrainerOnly> },

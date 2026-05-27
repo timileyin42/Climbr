@@ -7,6 +7,12 @@ import { useAuthStore, type UserRole } from '@/lib/auth/store'
 import { authEndpoints } from '@/lib/api/endpoints/auth'
 import { useLogout } from '@/lib/api/queries/useAuth'
 
+function _postVerifyDest(role: string): string {
+  if (role === 'employer') return '/employer/dashboard'
+  if (role === 'trainer') return '/trainer/dashboard'
+  return '/onboarding'
+}
+
 export function Component() {
   const [searchParams] = useSearchParams()
   const token    = searchParams.get('token')
@@ -18,15 +24,15 @@ export function Component() {
   const verify = useMutation({
     mutationFn: (t: string) => authEndpoints.verifyEmail(t),
     onSuccess: (data) => {
-      // Log the user in automatically using the tokens returned by the verify endpoint
       useAuthStore.getState().setAuth(
         { id: data.user.id, email: data.user.email, firstName: data.user.first_name,
           lastName: data.user.last_name, role: data.user.role as UserRole,
           isVerified: data.user.is_verified },
         data.access_token,
       )
-      toast.success('Email verified! Setting up your profile…')
-      setTimeout(() => navigate('/onboarding', { replace: true }), 1500)
+      const dest = _postVerifyDest(data.user.role)
+      toast.success(data.user.role === 'talent' ? 'Email verified! Setting up your profile…' : 'Email verified! Welcome to Climbr.')
+      setTimeout(() => navigate(dest, { replace: true }), 1500)
     },
   })
 
@@ -76,8 +82,8 @@ export function Component() {
               <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
                 Your account is active. Setting up your profile…
               </p>
-              <Button onClick={() => navigate('/onboarding', { replace: true })}>
-                Set up your profile
+              <Button onClick={() => navigate(_postVerifyDest(verify.data?.user.role ?? 'talent'), { replace: true })}>
+                {verify.data?.user.role === 'talent' ? 'Set up your profile' : 'Go to dashboard'}
               </Button>
             </>
           )}

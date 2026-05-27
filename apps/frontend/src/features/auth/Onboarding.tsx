@@ -1075,6 +1075,15 @@ export function Component() {
   const user     = useAuthStore((s) => s.user)
   const [step, setStep] = useState(0)
 
+  // Non-talent users should never land here
+  useEffect(() => {
+    if (user && user.role !== 'talent') {
+      const dest = user.role === 'employer' ? '/employer/dashboard' : '/trainer/dashboard'
+      navigate(dest, { replace: true })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role])
+
   // If talent already has bio set, skip onboarding (returning user)
   const { data: profile, isLoading: checkingProfile } = useQuery({
     queryKey: ['talent-profile-onboarding-check'],
