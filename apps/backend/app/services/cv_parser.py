@@ -73,15 +73,20 @@ async def parse_cv(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     from app.config import settings
 
     if not settings.GOOGLE_AI_API_KEY:
+        logger.warning("GOOGLE_AI_API_KEY not set — CV parsing skipped")
         return {}
 
     fname = filename.lower()
-    if fname.endswith(".pdf"):
-        text = _extract_pdf_text(file_bytes)
-    elif fname.endswith((".docx", ".doc")):
-        text = _extract_docx_text(file_bytes)
-    else:
-        text = file_bytes.decode("utf-8", errors="ignore")
+    try:
+        if fname.endswith(".pdf"):
+            text = _extract_pdf_text(file_bytes)
+        elif fname.endswith((".docx", ".doc")):
+            text = _extract_docx_text(file_bytes)
+        else:
+            text = file_bytes.decode("utf-8", errors="ignore")
+    except ImportError as exc:
+        logger.warning("CV parsing dependency not installed: %s", exc)
+        return {}
 
     if not text.strip():
         return {}
