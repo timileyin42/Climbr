@@ -59,6 +59,16 @@ export interface Application {
 export interface SavedJob { id: number; job: Job }
 export interface SavedTraining { id: number; training: Training }
 
+export interface CvParseResult {
+  bio?: string
+  education?: Array<{ institution: string; degree: string; field_of_study: string; start_year: number; end_year?: number }>
+  work_experience?: Array<{ company: string; position: string; description?: string; start_date: string; end_date?: string; is_current: boolean; location?: string }>
+  skills?: string[]
+  languages?: Array<{ name: string; proficiency: string }>
+  certificates?: Array<{ name: string; issuing_organization: string; issue_date?: string; credential_url?: string }>
+  hobbies?: string[]
+}
+
 // ── API calls ────────────────────────────────────────────────────────────────
 
 export const talentApi = {
@@ -98,4 +108,10 @@ export const talentApi = {
   addWorkExperience:    (body: Partial<WorkExperience>) => api.post('talent/profile/work-experience', { json: body }).json<WorkExperience>(),
   updateWorkExperience: (id: number, body: Partial<WorkExperience>) => api.put(`talent/profile/work-experience/${id}`, { json: body }).json<WorkExperience>(),
   deleteWorkExperience: (id: number) => api.delete(`talent/profile/work-experience/${id}`).json<void>(),
+
+  parseCv: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post('talent/profile/parse-cv', { body: form }).json<CvParseResult>()
+  },
 }

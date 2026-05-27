@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 import sqlalchemy as sa
 import logging
+import os
 
 from app.database import get_db
 from app.services.storage import StorageService
@@ -218,6 +219,26 @@ async def update_profile(
     # This endpoint updates the basic profile information and skills
     
     return {"message": "Profile updated successfully", "talent": updated_talent}
+
+@router.post("/profile/parse-cv")
+async def parse_cv_from_upload(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_talent),
+):
+    from app.services.cv_parser import parse_cv as _parse_cv
+    allowed = {".pdf", ".doc", ".docx", ".txt"}
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in allowed:
+        raise HTTPException(status_code=400, detail="Only PDF, DOCX, DOC, and TXT files are supported")
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large — maximum 10 MB")
+    try:
+        parsed = await _parse_cv(content, file.filename or "cv.pdf")
+        return parsed
+    except Exception as exc:
+        logger.error("CV parsing error: %s", exc)
+        raise HTTPException(status_code=500, detail="Could not parse CV — please fill in manually")
 
 # Education endpoints
 @router.get("/profile/education", response_model=List[EducationOut])

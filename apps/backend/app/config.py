@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     FIREBASE_PROJECT_ID: str
     FIREBASE_CREDENTIALS_JSON: str
 
+    # ── Google AI (Gemini — free tier) ────────────────────────────────────────
+    GOOGLE_AI_API_KEY: Optional[str] = None
+
     # ── Redis / Celery ────────────────────────────────────────────────────────
     REDIS_URL: Optional[str] = None
 

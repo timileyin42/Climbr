@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -11,7 +11,272 @@ import { RequireAuth } from '@/lib/auth/guards'
 import { useAuthStore } from '@/lib/auth/store'
 import { api } from '@/lib/api/client'
 import { talentApi } from '@/lib/api/endpoints/talent'
+import type { CvParseResult } from '@/lib/api/endpoints/talent'
 import { cn } from '@/lib/utils'
+
+// ── STEP 0: CV choice ────────────────────────────────────────────────────────
+
+type CvPhase =
+  | { kind: 'idle' }
+  | { kind: 'reading' }
+  | { kind: 'saving'; done: number; total: number }
+  | { kind: 'success' }
+  | { kind: 'error'; message: string }
+
+function Step0CVChoice({ onManual, onFinish }: { onManual: () => void; onFinish: () => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [phase, setPhase] = useState<CvPhase>({ kind: 'idle' })
+
+  async function handleFile(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large — maximum 10 MB')
+      return
+    }
+
+    setPhase({ kind: 'reading' })
+
+    let parsed: CvParseResult
+    try {
+      parsed = await talentApi.parseCv(file)
+    } catch {
+      setPhase({ kind: 'error', message: "Couldn't parse your CV" })
+      return
+    }
+
+    // Count non-empty sections to show progress
+    const sections: Array<() => Promise<unknown>> = []
+
+    if (parsed.bio) {
+      sections.push(() => talentApi.updateProfile({ bio: parsed.bio }))
+    }
+    if (parsed.education?.length) {
+      parsed.education.forEach((e) =>
+        sections.push(() => talentApi.addEducation(e)),
+      )
+    }
+    if (parsed.work_experience?.length) {
+      parsed.work_experience.forEach((w) =>
+        sections.push(() => talentApi.addWorkExperience(w)),
+      )
+    }
+    if (parsed.skills?.length) {
+      parsed.skills.forEach((name) =>
+        sections.push(() => api.post('talent/profile/skills', { json: { name } }).json()),
+      )
+    }
+    if (parsed.hobbies?.length) {
+      parsed.hobbies.forEach((name) =>
+        sections.push(() => api.post('talent/profile/hobbies', { json: { name } }).json()),
+      )
+    }
+    if (parsed.languages?.length) {
+      parsed.languages.forEach((l) =>
+        sections.push(() => api.post('talent/profile/languages', { json: l }).json()),
+      )
+    }
+    if (parsed.certificates?.length) {
+      parsed.certificates.forEach((c) =>
+        sections.push(() => api.post('talent/profile/certificates', { json: c }).json()),
+      )
+    }
+
+    const total = sections.length
+    if (total === 0) {
+      // Nothing extracted — fall through to manual
+      toast.info('No profile data found in the CV — please fill in manually')
+      onManual()
+      return
+    }
+
+    setPhase({ kind: 'saving', done: 0, total })
+
+    try {
+      for (let i = 0; i < sections.length; i++) {
+        await sections[i]()
+        setPhase({ kind: 'saving', done: i + 1, total })
+      }
+    } catch {
+      setPhase({ kind: 'error', message: "Some profile data couldn't be saved" })
+      return
+    }
+
+    setPhase({ kind: 'success' })
+    setTimeout(() => {
+      toast.success('Profile filled in! Welcome to Climbr 🎉')
+      onFinish()
+    }, 1200)
+  }
+
+  // ── idle / choice UI ──────────────────────────────────────────────────────
+  if (phase.kind === 'idle') {
+    return (
+      <div>
+        <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">
+          Set up your profile
+        </h1>
+        <p className="text-[14px] text-[var(--color-text-secondary)] mb-8">
+          Choose how you'd like to get started
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Manual card */}
+          <button
+            type="button"
+            onClick={onManual}
+            className="flex flex-col items-start gap-3 rounded-[var(--radius-lg)] border-2 border-[var(--color-border)] p-5 text-left transition-colors hover:border-[var(--color-brand-cyan)] hover:bg-[var(--color-brand-cyan-soft)] group"
+          >
+            <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] flex items-center justify-center group-hover:bg-white transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-text-secondary)]">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[14px] font-[700] text-[var(--color-text-primary)] mb-0.5">
+                Fill in manually
+              </p>
+              <p className="text-[12px] text-[var(--color-text-secondary)]">
+                Step through each section at your own pace
+              </p>
+            </div>
+          </button>
+
+          {/* Upload CV card */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-start gap-3 rounded-[var(--radius-lg)] border-2 border-[var(--color-brand-cyan)] bg-[var(--color-brand-cyan-soft)] p-5 text-left transition-colors hover:bg-[var(--color-brand-cyan-soft)]/80"
+          >
+            <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[14px] font-[700] text-[var(--color-text-primary)] mb-0.5">
+                Upload your CV
+              </p>
+              <p className="text-[12px] text-[var(--color-text-secondary)]">
+                We'll read your CV and fill in your details automatically
+              </p>
+            </div>
+          </button>
+        </div>
+
+        <p className="text-[12px] text-[var(--color-text-tertiary)] text-center mt-4">
+          Supports PDF and DOCX · Max 10 MB
+        </p>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) handleFile(f)
+            // reset so re-selecting the same file fires onChange again
+            e.target.value = ''
+          }}
+        />
+      </div>
+    )
+  }
+
+  // ── reading state ─────────────────────────────────────────────────────────
+  if (phase.kind === 'reading') {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-5">
+        <div className="w-12 h-12 border-[3px] border-[var(--color-brand-cyan)] border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <p className="text-[16px] font-[700] text-[var(--color-text-primary)]">Reading your CV…</p>
+          <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">This takes about 10 seconds</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── saving state ──────────────────────────────────────────────────────────
+  if (phase.kind === 'saving') {
+    const pct = Math.round((phase.done / phase.total) * 100)
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-5">
+        <div className="w-full max-w-xs">
+          <div className="flex justify-between text-[13px] mb-2">
+            <span className="text-[var(--color-text-primary)] font-[600]">Saving your profile…</span>
+            <span className="text-[var(--color-text-tertiary)]">{phase.done}/{phase.total}</span>
+          </div>
+          <div className="h-2 rounded-full bg-[var(--color-border)] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[var(--color-brand-cyan)] transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── success state ─────────────────────────────────────────────────────────
+  if (phase.kind === 'success') {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <div className="text-center">
+          <p className="text-[18px] font-[700] text-[var(--color-text-primary)]">Profile filled in!</p>
+          <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">Taking you to your dashboard…</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── error state ───────────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-5">
+      <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+      </div>
+      <div className="text-center">
+        <p className="text-[16px] font-[700] text-[var(--color-text-primary)]">{phase.message}</p>
+      </div>
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        <Button onClick={onManual} className="w-full">
+          Fill manually instead
+        </Button>
+        <button
+          type="button"
+          onClick={() => { setPhase({ kind: 'idle' }); fileInputRef.current?.click() }}
+          className="w-full text-center text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] py-1"
+        >
+          Try again
+        </button>
+      </div>
+      {/* Hidden file input needed for "Try again" */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.txt"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) handleFile(f)
+          e.target.value = ''
+        }}
+      />
+    </div>
+  )
+}
 
 // ── Progress bar ─────────────────────────────────────────────────────────────
 
@@ -731,7 +996,7 @@ function Step8Language({
 export function Component() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0)
 
   // If talent already has bio set, skip onboarding (returning user)
   const { data: profile, isLoading: checkingProfile } = useQuery({
@@ -759,16 +1024,6 @@ export function Component() {
     navigate('/dashboard')
   }
 
-  if (checkingProfile) {
-    return (
-      <RequireAuth>
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[var(--color-brand-cyan)] border-t-transparent rounded-full animate-spin" />
-        </div>
-      </RequireAuth>
-    )
-  }
-
   return (
     <RequireAuth>
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
@@ -778,13 +1033,22 @@ export function Component() {
             <span className="inline-flex items-center px-4 py-2 rounded-full bg-[var(--color-brand-navy)] text-white text-[15px] font-[700]">
               Climbr
             </span>
-            <span className="text-[13px] text-[var(--color-text-tertiary)]">
-              Step {step} of {TOTAL_STEPS} — {STEP_LABELS[step - 1]}
-            </span>
+            {step > 0 && (
+              <span className="text-[13px] text-[var(--color-text-tertiary)]">
+                Step {step} of {TOTAL_STEPS} — {STEP_LABELS[step - 1]}
+              </span>
+            )}
           </div>
 
-          <ProgressBar current={step} />
+          {step > 0 && <ProgressBar current={step} />}
 
+          {step === 0 && (
+            checkingProfile
+              ? <div className="flex items-center justify-center py-16">
+                  <div className="w-8 h-8 border-2 border-[var(--color-brand-cyan)] border-t-transparent rounded-full animate-spin" />
+                </div>
+              : <Step0CVChoice onManual={() => setStep(1)} onFinish={handleFinish} />
+          )}
           {step === 1 && <Step1Bio       onNext={goNext}    onSkip={skip} />}
           {step === 2 && <Step2Education onNext={goNext} onBack={goBack} onSkip={skip} />}
           {step === 3 && <Step3Resume    onNext={goNext} onBack={goBack} onSkip={skip} />}
