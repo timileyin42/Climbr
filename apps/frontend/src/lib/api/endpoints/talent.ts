@@ -69,6 +69,13 @@ export interface CvParseResult {
   hobbies?: string[]
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function _normaliseDates<T extends { start_date?: string | null; end_date?: string | null }>(body: T): T {
+  const fix = (d?: string | null) => (d && /^\d{4}-\d{2}$/.test(d) ? `${d}-01` : d)
+  return { ...body, start_date: fix(body.start_date), end_date: fix(body.end_date) }
+}
+
 // ── API calls ────────────────────────────────────────────────────────────────
 
 export const talentApi = {
@@ -105,8 +112,8 @@ export const talentApi = {
   updateEducation:    (id: number, body: Partial<Education>) => api.put(`talent/profile/education/${id}`, { json: body }).json<Education>(),
   deleteEducation:    (id: number) => api.delete(`talent/profile/education/${id}`).json<void>(),
 
-  addWorkExperience:    (body: Partial<WorkExperience>) => api.post('talent/profile/work-experience', { json: body }).json<WorkExperience>(),
-  updateWorkExperience: (id: number, body: Partial<WorkExperience>) => api.put(`talent/profile/work-experience/${id}`, { json: body }).json<WorkExperience>(),
+  addWorkExperience:    (body: Partial<WorkExperience>) => api.post('talent/profile/work-experience', { json: _normaliseDates(body) }).json<WorkExperience>(),
+  updateWorkExperience: (id: number, body: Partial<WorkExperience>) => api.put(`talent/profile/work-experience/${id}`, { json: _normaliseDates(body) }).json<WorkExperience>(),
   deleteWorkExperience: (id: number) => api.delete(`talent/profile/work-experience/${id}`).json<void>(),
 
   parseCv: (file: File) => {
