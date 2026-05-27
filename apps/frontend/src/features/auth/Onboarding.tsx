@@ -278,10 +278,10 @@ function Step3Resume({
 // ── STEP 4: Certificates ─────────────────────────────────────────────────────
 
 const certSchema = z.object({
-  name:       z.string().min(2, 'Required'),
-  issuer:     z.string().min(2, 'Required'),
-  issue_date: z.string().optional(),
-  url:        z.string().url('Enter a valid URL').or(z.literal('')).optional(),
+  name:                 z.string().min(2, 'Required'),
+  issuing_organization: z.string().min(2, 'Required'),
+  issue_date:           z.string().optional(),
+  credential_url:       z.string().url('Enter a valid URL').or(z.literal('')).optional(),
 })
 type CertForm = z.infer<typeof certSchema>
 
@@ -294,18 +294,37 @@ function Step4Certificates({
   onBack: () => void
   onSkip: () => void
 }) {
+  const [certFile, setCertFile] = useState<File | null>(null)
+
   const { register, handleSubmit, formState: { errors } } = useForm<CertForm>({
     resolver: zodResolver(certSchema),
   })
 
-  const save = useMutation({
-    mutationFn: (v: CertForm) => api.post('talent/profile/certificates', { json: v }).json<unknown>(),
-    onSuccess: onNext,
-    onError: () => toast.error('Failed to save — try again'),
-  })
+  const [isSaving, setIsSaving] = useState(false)
+
+  async function handleSave(v: CertForm) {
+    setIsSaving(true)
+    try {
+      // Step 1: create the certificate record
+      const created = await api.post('talent/profile/certificates', { json: v }).json<{ id: number }>()
+
+      // Step 2: if user picked a file, upload it
+      if (certFile && created?.id) {
+        const fd = new FormData()
+        fd.append('certificate_file', certFile)
+        await api.post(`talent/profile/certificates/${created.id}/upload`, { body: fd })
+      }
+
+      onNext()
+    } catch {
+      toast.error('Failed to save — try again')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
-    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+    <form onSubmit={handleSubmit(handleSave)}>
       <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Certificates</h1>
       <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
         Add a professional certification or course completion. You can add more later.
@@ -319,8 +338,8 @@ function Step4Certificates({
         </div>
         <div>
           <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Issuing Organisation</label>
-          <Input placeholder="Amazon Web Services" {...register('issuer')} />
-          {errors.issuer && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.issuer.message}</p>}
+          <Input placeholder="Amazon Web Services" {...register('issuing_organization')} />
+          {errors.issuing_organization && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.issuing_organization.message}</p>}
         </div>
         <div>
           <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Issue Date</label>
@@ -330,12 +349,50 @@ function Step4Certificates({
           <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
             Credential URL <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
           </label>
-          <Input type="url" placeholder="https://…" {...register('url')} />
-          {errors.url && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.url.message}</p>}
+          <Input type="url" placeholder="https://…" {...register('credential_url')} />
+          {errors.credential_url && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.credential_url.message}</p>}
+        </div>
+
+        {/* Certificate image / file upload */}
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+            Upload Certificate <span className="text-[var(--color-text-tertiary)] font-[400]">(optional — PNG, JPG, PDF)</span>
+          </label>
+          <label
+            className="flex items-center gap-3 w-full border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)] px-4 py-3 cursor-pointer hover:border-[var(--color-brand-cyan)] transition-colors"
+          >
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,application/pdf"
+              className="hidden"
+              onChange={(e) => setCertFile(e.target.files?.[0] ?? null)}
+            />
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-brand-cyan-soft)] flex items-center justify-center shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              {certFile ? (
+                <p className="text-[13px] font-[600] text-[var(--color-text-primary)] truncate">{certFile.name}</p>
+              ) : (
+                <p className="text-[13px] text-[var(--color-text-secondary)]">Click to upload certificate image or PDF</p>
+              )}
+            </div>
+            {certFile && (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setCertFile(null) }}
+                className="text-[var(--color-text-tertiary)] hover:text-[var(--color-brand-pink)] shrink-0 text-[18px] leading-none"
+              >
+                ×
+              </button>
+            )}
+          </label>
         </div>
       </div>
 
-      <StepNav step={4} onBack={onBack} onSkip={onSkip} isLoading={save.isPending} />
+      <StepNav step={4} onBack={onBack} onSkip={onSkip} isLoading={isSaving} />
     </form>
   )
 }
