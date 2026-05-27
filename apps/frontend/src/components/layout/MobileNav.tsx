@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { Menu, X, LayoutDashboard, Briefcase, GraduationCap, FileText, Bookmark, Settings, Users, CreditCard, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Briefcase, GraduationCap, FileText, Bookmark, Settings, Users, CreditCard, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, type UserRole } from '@/lib/auth/store'
+import { useLogout } from '@/lib/api/queries/useAuth'
 
 const navConfig: Record<UserRole, { label: string; icon: React.ElementType; to: string }[]> = {
   talent: [
@@ -46,6 +47,7 @@ export function MobileNav() {
   const role = user?.role ?? 'talent'
   const items = navConfig[role]
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '?'
+  const logout = useLogout()
 
   return (
     <>
@@ -102,8 +104,8 @@ export function MobileNav() {
           ))}
         </nav>
 
-        {/* User pill */}
-        <div className="px-4 py-4 border-t border-[var(--color-border)]">
+        {/* User pill + logout */}
+        <div className="px-4 py-4 border-t border-[var(--color-border)] space-y-1">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)]">
             <div className="w-8 h-8 rounded-full bg-[var(--color-brand-navy)] flex items-center justify-center text-[12px] font-[700] text-white shrink-0">
               {initials}
@@ -115,6 +117,14 @@ export function MobileNav() {
               <p className="text-[11px] text-[var(--color-text-tertiary)] capitalize">{role}</p>
             </div>
           </div>
+          <button
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            className="flex items-center gap-2.5 w-full px-3 py-2 rounded-[var(--radius-md)] text-[13px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-red-500 transition-colors"
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            {logout.isPending ? 'Signing out…' : 'Sign out'}
+          </button>
         </div>
       </div>
     </>
