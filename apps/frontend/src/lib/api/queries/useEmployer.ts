@@ -10,7 +10,7 @@ const K = {
 }
 
 export function useEmployerInfo()    { return useQuery({ queryKey: K.info,    queryFn: employerApi.info }) }
-export function useEmployerCredits() { return useQuery({ queryKey: K.credits, queryFn: employerApi.credits }) }
+export function useEmployerCredits() { return useQuery({ queryKey: K.credits, queryFn: employerApi.credits, refetchInterval: false }) }
 export function useEmployerJobs(status?: string) {
   return useQuery({ queryKey: K.jobs(status), queryFn: () => employerApi.jobs(status) })
 }

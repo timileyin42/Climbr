@@ -240,7 +240,9 @@ class Employer(Base):
     description = Column(Text, nullable=True)
     location = Column(String)
     is_verified = Column(Boolean, default=False)
-    job_credits = Column(Integer, nullable=False, default=0)
+    job_credits      = Column(Integer, nullable=False, default=0)
+    free_posts_used  = Column(Integer, nullable=False, default=0)
+    free_posts_month = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -267,6 +269,8 @@ class Trainer(Base):
     location = Column(String)
     is_verified = Column(Boolean, default=False)
     training_credits = Column(Integer, nullable=False, default=0)
+    free_posts_used  = Column(Integer, nullable=False, default=0)
+    free_posts_month = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

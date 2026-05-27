@@ -3,6 +3,23 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
+FREE_POSTS_PER_MONTH = 2
+
+def _free_posts_remaining(entity) -> int:
+    current_month = datetime.now().strftime("%Y-%m")
+    if entity.free_posts_month != current_month:
+        return FREE_POSTS_PER_MONTH
+    return max(0, FREE_POSTS_PER_MONTH - (entity.free_posts_used or 0))
+
+def _consume_free_post(db, entity) -> None:
+    current_month = datetime.now().strftime("%Y-%m")
+    if entity.free_posts_month != current_month:
+        entity.free_posts_used  = 1
+        entity.free_posts_month = current_month
+    else:
+        entity.free_posts_used = (entity.free_posts_used or 0) + 1
+    db.commit()
+
 from app.database import get_db
 from app.services.storage import StorageService
 from app.dependencies.auth import get_current_user, get_current_trainer
@@ -158,6 +175,7 @@ async def get_credits(
     """Get current training posting credits"""
     return {
         "training_credits": current_trainer.training_credits,
+        "free_posts_remaining": _free_posts_remaining(current_trainer),
         "message": f"You have {current_trainer.training_credits} training posting credits remaining"
     }
 
@@ -167,28 +185,35 @@ async def create_training(
     db: Session = Depends(get_db),
     current_trainer: Trainer = Depends(get_current_trainer)
 ):
-    """Create a new training posting (requires credits)"""
-    # Check if trainer has credits
-    if current_trainer.training_credits <= 0:
+    """Create a new training posting (2 free per month, then requires credits)"""
+    free_left = _free_posts_remaining(current_trainer)
+    if free_left > 0:
+        _consume_free_post(db, current_trainer)
+        used_free = True
+    elif current_trainer.training_credits <= 0:
         raise HTTPException(
-            status_code=400, 
-            detail="Insufficient credits. Please purchase a training posting package."
+            status_code=400,
+            detail="You've used your 2 free posts this month. Please purchase credits to continue posting."
         )
-    
+    else:
+        used_free = False
+
     try:
-        # Create the training using TrainingService
         training = TrainingService.create_training(db, current_trainer.id, training_data.dict())
-        
-        # Deduct one credit after successful training creation
-        current_trainer.training_credits -= 1
+        if not used_free:
+            current_trainer.training_credits -= 1
         db.commit()
-        
+
         return {
             "message": "Training created successfully",
             "training_id": training.id,
-            "remaining_credits": current_trainer.training_credits
+            "remaining_credits": current_trainer.training_credits,
+            "free_posts_remaining": _free_posts_remaining(current_trainer),
+            "used_free_post": used_free,
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Training creation failed: {str(e)}")

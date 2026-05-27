@@ -18,7 +18,7 @@ export interface TrainerApplicantsResponse {
 
 export const trainerApi = {
   info:    () => api.get('trainer/info').json<EmployerInfo>(),
-  credits: () => api.get('trainer/credits').json<{ training_credits: number }>(),
+  credits: () => api.get('trainer/credits').json<{ training_credits: number; free_posts_remaining: number }>(),
 
   purchase: (packageId: number) =>
     api.post('trainer/purchase', { json: { package_id: packageId } }).json<{

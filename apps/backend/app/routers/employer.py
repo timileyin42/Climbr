@@ -3,6 +3,23 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
+FREE_POSTS_PER_MONTH = 2
+
+def _free_posts_remaining(entity) -> int:
+    current_month = datetime.now().strftime("%Y-%m")
+    if entity.free_posts_month != current_month:
+        return FREE_POSTS_PER_MONTH
+    return max(0, FREE_POSTS_PER_MONTH - (entity.free_posts_used or 0))
+
+def _consume_free_post(db, entity) -> None:
+    current_month = datetime.now().strftime("%Y-%m")
+    if entity.free_posts_month != current_month:
+        entity.free_posts_used  = 1
+        entity.free_posts_month = current_month
+    else:
+        entity.free_posts_used = (entity.free_posts_used or 0) + 1
+    db.commit()
+
 from app.database import get_db
 from app.services.storage import StorageService
 from app.dependencies.auth import get_current_user, get_current_employer
@@ -158,6 +175,7 @@ async def get_credits(
     """Get current job posting credits"""
     return {
         "job_credits": current_employer.job_credits,
+        "free_posts_remaining": _free_posts_remaining(current_employer),
         "message": f"You have {current_employer.job_credits} job posting credits remaining"
     }
 
@@ -167,17 +185,23 @@ async def create_job(
     db: Session = Depends(get_db),
     current_employer: Employer = Depends(get_current_employer)
 ):
-    """Create a new job posting (requires credits)"""
-    # Check if employer has credits
-    if current_employer.job_credits <= 0:
+    """Create a new job posting (2 free per month, then requires credits)"""
+    free_left = _free_posts_remaining(current_employer)
+    if free_left > 0:
+        _consume_free_post(db, current_employer)
+        used_free = True
+    elif current_employer.job_credits <= 0:
         raise HTTPException(
-            status_code=400, 
-            detail="Insufficient credits. Please purchase a job posting package."
+            status_code=400,
+            detail="You've used your 2 free posts this month. Please purchase credits to continue posting."
         )
-    
+    else:
+        used_free = False
+
     try:
         job = JobService.create_job(db, current_employer.id, job_data.dict())
-        current_employer.job_credits -= 1
+        if not used_free:
+            current_employer.job_credits -= 1
         db.commit()
 
         # Fire-and-forget: notify matching talents asynchronously
@@ -190,7 +214,9 @@ async def create_job(
         return {
             "message": "Job created successfully",
             "job_id": job.id,
-            "remaining_credits": current_employer.job_credits
+            "remaining_credits": current_employer.job_credits,
+            "free_posts_remaining": _free_posts_remaining(current_employer),
+            "used_free_post": used_free,
         }
 
     except HTTPException:

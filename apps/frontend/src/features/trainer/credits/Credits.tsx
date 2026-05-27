@@ -121,8 +121,9 @@ export function Component() {
   const purchase = usePurchaseTrainerCredits()
   const confirm  = useConfirmTrainerPayment()
 
-  const credits  = creditsData?.training_credits ?? 0
-  const packages = infoData?.pricing ?? []
+  const credits   = creditsData?.training_credits ?? 0
+  const freePosts = creditsData?.free_posts_remaining ?? 2
+  const packages  = infoData?.pricing ?? []
 
   const creditPacks   = packages.filter((p) => !isUnlimited(p))
   const subscriptions = packages.filter((p) => isUnlimited(p))
@@ -141,22 +142,31 @@ export function Component() {
       </div>
 
       {/* Balance */}
-      <div className="rounded-[var(--radius-xl)] p-6 flex items-center gap-5" style={{ background: ACCENT }}>
-        <div className="w-14 h-14 rounded-full bg-black/10 flex items-center justify-center shrink-0">
-          <CreditCard className="w-7 h-7" style={{ color: ACCENT_NAVY }} />
-        </div>
-        <div>
-          {loadingCredits ? (
-            <div className="h-9 w-16 rounded bg-black/10 animate-pulse" />
-          ) : (
-            <p className="text-[40px] font-[800] leading-none" style={{ color: ACCENT_NAVY }}>
-              {credits >= 999 ? '∞' : credits}
+      <div className="rounded-[var(--radius-xl)] p-6 flex flex-col sm:flex-row sm:items-center gap-5" style={{ background: ACCENT }}>
+        <div className="flex items-center gap-5 flex-1">
+          <div className="w-14 h-14 rounded-full bg-black/10 flex items-center justify-center shrink-0">
+            <CreditCard className="w-7 h-7" style={{ color: ACCENT_NAVY }} />
+          </div>
+          <div>
+            {loadingCredits ? (
+              <div className="h-9 w-16 rounded bg-black/10 animate-pulse" />
+            ) : (
+              <p className="text-[40px] font-[800] leading-none" style={{ color: ACCENT_NAVY }}>
+                {credits >= 999 ? '∞' : credits}
+              </p>
+            )}
+            <p className="text-[14px] mt-1" style={{ color: `${ACCENT_NAVY}99` }}>
+              {credits >= 999 ? 'unlimited posts active' : `training credit${credits !== 1 ? 's' : ''} remaining`}
             </p>
-          )}
-          <p className="text-[14px] mt-1" style={{ color: `${ACCENT_NAVY}99` }}>
-            {credits >= 999 ? 'unlimited posts active' : `training credit${credits !== 1 ? 's' : ''} remaining`}
-          </p>
+          </div>
         </div>
+
+        {!loadingCredits && credits < 999 && (
+          <div className="rounded-[var(--radius-lg)] px-4 py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.12)' }}>
+            <p className="text-[22px] font-[800] leading-none" style={{ color: ACCENT_NAVY }}>{freePosts} / 2</p>
+            <p className="text-[12px] mt-0.5" style={{ color: `${ACCENT_NAVY}99` }}>free posts left this month</p>
+          </div>
+        )}
       </div>
 
       {loadingInfo ? (

@@ -118,8 +118,9 @@ export function Component() {
   const purchase = usePurchaseCredits()
   const confirm  = useConfirmPayment()
 
-  const credits  = creditsData?.job_credits ?? 0
-  const packages = infoData?.pricing ?? []
+  const credits   = creditsData?.job_credits ?? 0
+  const freePosts = creditsData?.free_posts_remaining ?? 2
+  const packages  = infoData?.pricing ?? []
 
   const creditPacks   = packages.filter((p) => !isUnlimited(p))
   const subscriptions = packages.filter((p) => isUnlimited(p))
@@ -138,22 +139,32 @@ export function Component() {
       </div>
 
       {/* Balance */}
-      <div className="bg-[var(--color-brand-orange)] rounded-[var(--radius-xl)] p-6 flex items-center gap-5">
-        <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-          <CreditCard className="w-7 h-7 text-white" />
-        </div>
-        <div>
-          {loadingCredits ? (
-            <div className="h-9 w-16 rounded bg-white/20 animate-pulse" />
-          ) : (
-            <p className="text-[40px] font-[800] text-white leading-none">
-              {credits >= 999 ? '∞' : credits}
+      <div className="bg-[var(--color-brand-orange)] rounded-[var(--radius-xl)] p-6 flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="flex items-center gap-5 flex-1">
+          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <CreditCard className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            {loadingCredits ? (
+              <div className="h-9 w-16 rounded bg-white/20 animate-pulse" />
+            ) : (
+              <p className="text-[40px] font-[800] text-white leading-none">
+                {credits >= 999 ? '∞' : credits}
+              </p>
+            )}
+            <p className="text-white/70 text-[14px] mt-1">
+              {credits >= 999 ? 'unlimited posts active' : `job credit${credits !== 1 ? 's' : ''} remaining`}
             </p>
-          )}
-          <p className="text-white/70 text-[14px] mt-1">
-            {credits >= 999 ? 'unlimited posts active' : `job credit${credits !== 1 ? 's' : ''} remaining`}
-          </p>
+          </div>
         </div>
+
+        {/* Free posts this month */}
+        {!loadingCredits && credits < 999 && (
+          <div className="bg-white/20 rounded-[var(--radius-lg)] px-4 py-3 shrink-0">
+            <p className="text-white text-[22px] font-[800] leading-none">{freePosts} / 2</p>
+            <p className="text-white/80 text-[12px] mt-0.5">free posts left this month</p>
+          </div>
+        )}
       </div>
 
       {loadingInfo ? (

@@ -25,7 +25,7 @@ export interface JobCreate {
 
 export const employerApi = {
   info:    () => api.get('employer/info').json<EmployerInfo>(),
-  credits: () => api.get('employer/credits').json<{ job_credits: number }>(),
+  credits: () => api.get('employer/credits').json<{ job_credits: number; free_posts_remaining: number }>(),
 
   purchase: (packageId: number) =>
     api.post('employer/purchase', { json: { package_id: packageId } }).json<{
