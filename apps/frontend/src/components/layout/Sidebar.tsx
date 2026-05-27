@@ -1,21 +1,20 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Briefcase, GraduationCap, FileText,
-  Bookmark, Settings, Users, BarChart3, CreditCard,
-  MessageSquare, ShieldCheck, PenSquare, BookOpen,
+  Settings, Users, BarChart3, CreditCard,
+  MessageSquare, ShieldCheck, PenSquare, BookOpen, UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, type UserRole } from '@/lib/auth/store'
 
 const navConfig: Record<UserRole, { label: string; icon: React.ElementType; to: string }[]> = {
   talent: [
-    { label: 'Dashboard',     icon: LayoutDashboard, to: '/dashboard' },
-    { label: 'Job Listings',  icon: Briefcase,       to: '/jobs' },
-    { label: 'Trainings',     icon: GraduationCap,   to: '/trainings' },
-    { label: 'My Applications', icon: FileText,      to: '/applications' },
-    { label: 'Saved',         icon: Bookmark,        to: '/saved' },
-    { label: 'Messages',      icon: MessageSquare,   to: '/messages' },
-    { label: 'Settings',      icon: Settings,        to: '/settings' },
+    { label: 'Dashboard',       icon: LayoutDashboard, to: '/dashboard' },
+    { label: 'My Profile',      icon: UserCircle,      to: '/profile' },
+    { label: 'Job Listings',    icon: Briefcase,       to: '/jobs' },
+    { label: 'Trainings',       icon: GraduationCap,   to: '/trainings' },
+    { label: 'My Applications', icon: FileText,        to: '/applications' },
+    { label: 'Settings',        icon: Settings,        to: '/settings' },
   ],
   employer: [
     { label: 'Dashboard',  icon: LayoutDashboard, to: '/employer/dashboard' },

@@ -18,8 +18,11 @@ export function Component() {
   const verify = useMutation({
     mutationFn: (t: string) => authEndpoints.verifyEmail(t),
     onSuccess: () => {
-      toast.success('Email verified! Redirecting to login…')
-      setTimeout(() => navigate('/login', { replace: true }), 2500)
+      toast.success('Email verified! Redirecting…')
+      // Go to onboarding if the user is already in session, otherwise login
+      const authed = useAuthStore.getState().user
+      const dest = authed?.role === 'talent' ? '/onboarding' : '/login'
+      setTimeout(() => navigate(dest, { replace: true }), 2000)
     },
   })
 
@@ -67,9 +70,11 @@ export function Component() {
               </div>
               <h1 className="text-[24px] font-[700] text-[var(--color-brand-navy)] mb-3">Email Verified!</h1>
               <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
-                Your account is active. Redirecting you to login…
+                Your account is active. Setting up your profile…
               </p>
-              <Button onClick={() => navigate('/login', { replace: true })}>Go to Login</Button>
+              <Button onClick={() => navigate('/onboarding', { replace: true })}>
+                Set up your profile
+              </Button>
             </>
           )}
 

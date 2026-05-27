@@ -25,7 +25,8 @@ const EmployerDashboard = lazy(() => import('@/features/employer/dashboard/Dashb
 const TrainerDashboard  = lazy(() => import('@/features/trainer/dashboard/Dashboard').then((m) => ({ default: m.Component })))
 const Jobs         = lazy(() => import('@/features/talent/jobs/Jobs').then((m) => ({ default: m.Component })))
 const JobDetail    = lazy(() => import('@/features/talent/jobs/JobDetail').then((m) => ({ default: m.Component })))
-const Trainings    = lazy(() => import('@/features/talent/trainings/Trainings').then((m) => ({ default: m.Component })))
+const Trainings       = lazy(() => import('@/features/talent/trainings/Trainings').then((m) => ({ default: m.Component })))
+const TrainingDetail  = lazy(() => import('@/features/talent/trainings/TrainingDetail').then((m) => ({ default: m.Component })))
 const Applications = lazy(() => import('@/features/talent/applications/Applications').then((m) => ({ default: m.Component })))
 const Saved        = lazy(() => import('@/features/talent/saved/Saved').then((m) => ({ default: m.Component })))
 const Profile      = lazy(() => import('@/features/talent/profile/Profile').then((m) => ({ default: m.Component })))
@@ -123,7 +124,7 @@ export const router = createBrowserRouter([
       { path: '/jobs',         element: <TalentOnly><Jobs /></TalentOnly> },
       { path: '/jobs/:id',     element: <TalentOnly><JobDetail /></TalentOnly> },
       { path: '/trainings',    element: <TalentOnly><Trainings /></TalentOnly> },
-      { path: '/trainings/:id',element: <TalentOnly><Placeholder name="Training Detail" /></TalentOnly> },
+      { path: '/trainings/:id',element: <TalentOnly><TrainingDetail /></TalentOnly> },
       { path: '/discover',     element: <TalentOnly><Placeholder name="Discover — Swipe" /></TalentOnly> },
       { path: '/applications', element: <TalentOnly><Applications /></TalentOnly> },
       { path: '/saved',        element: <TalentOnly><Saved /></TalentOnly> },

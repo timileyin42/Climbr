@@ -20,8 +20,14 @@ export function useLogin() {
     mutationFn: (payload: LoginPayload) => authEndpoints.login(payload),
     onSuccess: (data) => {
       handleAuthResponse(data)
-      const next = new URLSearchParams(window.location.search).get('next') ?? dashboardFor(data.user.role)
-      navigate(next)
+      const next = new URLSearchParams(window.location.search).get('next')
+      if (next) { navigate(next); return }
+      // Talent users with no bio set go to onboarding first
+      if (data.user.role === 'talent' && !(data.user as Record<string, unknown>).profile_complete) {
+        navigate('/onboarding')
+      } else {
+        navigate(dashboardFor(data.user.role))
+      }
     },
     onError: () => toast.error('Invalid email or password'),
   })
@@ -51,7 +57,8 @@ export function useGoogleSignIn(role?: 'talent' | 'employer' | 'trainer') {
     },
     onSuccess: (data) => {
       handleAuthResponse(data)
-      if (data.user.role === 'talent' && !data.user.is_verified) navigate('/onboarding')
+      // All talent users go through onboarding — the page auto-skips if profile already set
+      if (data.user.role === 'talent') navigate('/onboarding')
       else navigate(dashboardFor(data.user.role))
     },
     onError: () => toast.error('Google sign-in failed'),

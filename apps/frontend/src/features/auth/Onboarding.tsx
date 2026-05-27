@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,108 +10,706 @@ import { Input } from '@/components/ui/input'
 import { RequireAuth } from '@/lib/auth/guards'
 import { useAuthStore } from '@/lib/auth/store'
 import { api } from '@/lib/api/client'
+import { talentApi } from '@/lib/api/endpoints/talent'
 import { cn } from '@/lib/utils'
 
-// ── Step schemas ─────────────────────────────────────────────────────────────
+// ── Progress bar ─────────────────────────────────────────────────────────────
 
-const step1Schema = z.object({
-  headline: z.string().min(3, 'At least 3 characters').max(120, 'Too long'),
-  location: z.string().min(2, 'Required'),
-})
+const TOTAL_STEPS = 8
 
-const step2Schema = z.object({
-  skills: z.string().min(1, 'Add at least one skill'),
-})
-
-const step3Schema = z.object({
-  bio: z.string().min(20, 'At least 20 characters').max(600, 'Max 600 characters'),
-})
-
-type Step1 = z.infer<typeof step1Schema>
-type Step2 = z.infer<typeof step2Schema>
-type Step3 = z.infer<typeof step3Schema>
-
-// ── Experience options ───────────────────────────────────────────────────────
-
-const EXP_OPTIONS = [
-  { id: 'student',    label: 'Student',          desc: 'Currently in school or recently graduated' },
-  { id: 'entry',      label: 'Entry level',       desc: '0–2 years of experience' },
-  { id: 'mid',        label: 'Mid level',         desc: '3–5 years of experience' },
-  { id: 'senior',     label: 'Senior level',      desc: '6–10 years of experience' },
-  { id: 'lead',       label: 'Lead / Manager',    desc: '10+ years or management role' },
-]
-
-const JOB_TYPE_OPTIONS = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Remote']
-
-// ── Step indicator ───────────────────────────────────────────────────────────
-
-function StepDots({ current, total }: { current: number; total: number }) {
+function ProgressBar({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} className={cn('h-1.5 rounded-full transition-all',
-          i + 1 === current ? 'w-8 bg-[var(--color-brand-cyan)]'
-          : i + 1 < current  ? 'w-4 bg-[var(--color-brand-cyan)]/40'
-          : 'w-4 bg-[var(--color-border)]')} />
+    <div className="flex items-center gap-1.5 mb-8">
+      {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+        <div
+          key={i}
+          className={cn(
+            'h-1.5 flex-1 rounded-full transition-all',
+            i + 1 < current
+              ? 'bg-[var(--color-brand-cyan)]'
+              : i + 1 === current
+              ? 'bg-[var(--color-brand-cyan)]'
+              : 'bg-[var(--color-border)]',
+          )}
+        />
       ))}
     </div>
   )
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Step label ────────────────────────────────────────────────────────────────
 
-export function Component() {
-  const navigate   = useNavigate()
-  const user       = useAuthStore((s) => s.user)
-  const [step, setStep]         = useState(1)
-  const [experience, setExp]    = useState('')
-  const [jobTypes, setJobTypes] = useState<string[]>([])
-  const [skillInput, setSkillInput] = useState('')
-  const [skillList, setSkillList]   = useState<string[]>([])
+const STEP_LABELS = [
+  'Summary',
+  'Education',
+  'Resume',
+  'Certificates',
+  'Work Experience',
+  'Skills',
+  'Hobbies & Interests',
+  'Language',
+]
 
-  const form1 = useForm<Step1>({ resolver: zodResolver(step1Schema) })
-  const form2 = useForm<Step2>({ resolver: zodResolver(step2Schema) })
-  const form3 = useForm<Step3>({ resolver: zodResolver(step3Schema) })
+// ── Shared nav buttons ────────────────────────────────────────────────────────
 
-  const submit = useMutation({
-    mutationFn: (payload: Record<string, unknown>) =>
-      api.patch('profile/me', { json: payload }).json<void>(),
-    onSuccess: () => {
-      toast.success('Profile set up! Welcome to Climbr.')
-      navigate('/dashboard')
-    },
-    onError: () => toast.error('Something went wrong — try again'),
+function StepNav({
+  step,
+  onBack,
+  onSkip,
+  isLoading,
+  continueLabel = 'Continue',
+}: {
+  step: number
+  onBack: () => void
+  onSkip: () => void
+  isLoading?: boolean
+  continueLabel?: string
+}) {
+  return (
+    <div className="mt-6 space-y-3">
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? 'Saving…' : continueLabel}
+      </Button>
+      <button
+        type="button"
+        onClick={onSkip}
+        className="w-full text-center text-[13px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] py-1"
+      >
+        Skip for now
+      </button>
+      {step > 1 && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-full text-center text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center justify-center gap-1"
+        >
+          ← Back
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── STEP 1: Bio / Summary ────────────────────────────────────────────────────
+
+const bioSchema = z.object({
+  bio: z.string().min(20, 'At least 20 characters').max(600, 'Max 600 characters'),
+})
+type BioForm = z.infer<typeof bioSchema>
+
+function Step1Bio({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<BioForm>({ resolver: zodResolver(bioSchema) })
+  const charCount = watch('bio', '').length
+
+  const save = useMutation({
+    mutationFn: (v: BioForm) => talentApi.updateProfile({ bio: v.bio }),
+    onSuccess: onNext,
+    onError: () => toast.error('Failed to save — try again'),
   })
+
+  return (
+    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">
+        Tell us about yourself
+      </h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Write a short bio. This is the first thing employers see on your profile.
+      </p>
+
+      <div>
+        <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+          Summary / Bio
+        </label>
+        <textarea
+          rows={5}
+          placeholder="I'm a product designer based in Lagos with 3 years of experience building fintech products…"
+          {...register('bio')}
+          className={cn(
+            'w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 text-[14px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] bg-white resize-none outline-none transition-colors',
+            errors.bio
+              ? 'border-[var(--color-brand-pink)]'
+              : 'border-[var(--color-border)] focus:border-[var(--color-brand-cyan)]',
+          )}
+        />
+        <div className="flex justify-between mt-1">
+          {errors.bio
+            ? <p className="text-[12px] text-[var(--color-brand-pink)]">{errors.bio.message}</p>
+            : <span />}
+          <p className="text-[12px] text-[var(--color-text-tertiary)]">{charCount}/600</p>
+        </div>
+      </div>
+
+      <StepNav step={1} onBack={() => {}} onSkip={onSkip} isLoading={save.isPending} />
+    </form>
+  )
+}
+
+// ── STEP 2: Education ────────────────────────────────────────────────────────
+
+const educationSchema = z.object({
+  institution:    z.string().min(2, 'Required'),
+  degree:         z.string().min(2, 'Required'),
+  field_of_study: z.string().min(2, 'Required'),
+  start_year:     z.coerce.number().min(1970).max(2030),
+  end_year:       z.coerce.number().min(1970).max(2030).optional(),
+  current:        z.boolean().optional(),
+})
+type EducationForm = z.infer<typeof educationSchema>
+
+function Step2Education({
+  onNext,
+  onBack,
+  onSkip,
+}: {
+  onNext: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<EducationForm>({
+    resolver: zodResolver(educationSchema),
+    defaultValues: { current: false },
+  })
+  const isCurrent = watch('current')
+
+  const save = useMutation({
+    mutationFn: (v: EducationForm) => talentApi.addEducation(v),
+    onSuccess: onNext,
+    onError: () => toast.error('Failed to save — try again'),
+  })
+
+  return (
+    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Education</h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Add your highest level of education. You can add more from your profile later.
+      </p>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Institution</label>
+          <Input placeholder="University of Lagos" {...register('institution')} />
+          {errors.institution && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.institution.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Degree</label>
+          <Input placeholder="Bachelor of Science" {...register('degree')} />
+          {errors.degree && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.degree.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Field of Study</label>
+          <Input placeholder="Computer Science" {...register('field_of_study')} />
+          {errors.field_of_study && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.field_of_study.message}</p>}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Start Year</label>
+            <Input type="number" placeholder="2018" {...register('start_year')} />
+          </div>
+          <div>
+            <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">End Year</label>
+            <Input type="number" placeholder="2022" disabled={!!isCurrent} {...register('end_year')} />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-[13px] text-[var(--color-text-primary)] cursor-pointer">
+          <input type="checkbox" {...register('current')} className="accent-[var(--color-brand-cyan)]" />
+          Currently enrolled
+        </label>
+      </div>
+
+      <StepNav step={2} onBack={onBack} onSkip={onSkip} isLoading={save.isPending} />
+    </form>
+  )
+}
+
+// ── STEP 3: Resume ───────────────────────────────────────────────────────────
+
+const resumeSchema = z.object({
+  resume_url: z.string().url('Enter a valid URL').or(z.literal('')),
+})
+type ResumeForm = z.infer<typeof resumeSchema>
+
+function Step3Resume({
+  onNext,
+  onBack,
+  onSkip,
+}: {
+  onNext: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const { register, handleSubmit, formState: { errors } } = useForm<ResumeForm>({
+    resolver: zodResolver(resumeSchema),
+  })
+
+  const save = useMutation({
+    mutationFn: (v: ResumeForm) =>
+      v.resume_url ? talentApi.updateProfile({ resume_url: v.resume_url }) : Promise.resolve(null),
+    onSuccess: onNext,
+    onError: () => toast.error('Failed to save — try again'),
+  })
+
+  return (
+    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Resume</h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Paste a link to your CV or resume — Google Drive, Dropbox, or any public link works.
+      </p>
+
+      <div>
+        <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Resume URL</label>
+        <Input
+          type="url"
+          placeholder="https://drive.google.com/…"
+          {...register('resume_url')}
+        />
+        {errors.resume_url && (
+          <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.resume_url.message}</p>
+        )}
+        <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2">
+          Make sure the link is set to "Anyone with the link can view".
+        </p>
+      </div>
+
+      <StepNav step={3} onBack={onBack} onSkip={onSkip} isLoading={save.isPending} />
+    </form>
+  )
+}
+
+// ── STEP 4: Certificates ─────────────────────────────────────────────────────
+
+const certSchema = z.object({
+  name:       z.string().min(2, 'Required'),
+  issuer:     z.string().min(2, 'Required'),
+  issue_date: z.string().optional(),
+  url:        z.string().url('Enter a valid URL').or(z.literal('')).optional(),
+})
+type CertForm = z.infer<typeof certSchema>
+
+function Step4Certificates({
+  onNext,
+  onBack,
+  onSkip,
+}: {
+  onNext: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const { register, handleSubmit, formState: { errors } } = useForm<CertForm>({
+    resolver: zodResolver(certSchema),
+  })
+
+  const save = useMutation({
+    mutationFn: (v: CertForm) => api.post('talent/profile/certificates', { json: v }).json<unknown>(),
+    onSuccess: onNext,
+    onError: () => toast.error('Failed to save — try again'),
+  })
+
+  return (
+    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Certificates</h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Add a professional certification or course completion. You can add more later.
+      </p>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Certificate Name</label>
+          <Input placeholder="AWS Solutions Architect" {...register('name')} />
+          {errors.name && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.name.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Issuing Organisation</label>
+          <Input placeholder="Amazon Web Services" {...register('issuer')} />
+          {errors.issuer && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.issuer.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Issue Date</label>
+          <Input type="date" {...register('issue_date')} />
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+            Credential URL <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+          </label>
+          <Input type="url" placeholder="https://…" {...register('url')} />
+          {errors.url && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.url.message}</p>}
+        </div>
+      </div>
+
+      <StepNav step={4} onBack={onBack} onSkip={onSkip} isLoading={save.isPending} />
+    </form>
+  )
+}
+
+// ── STEP 5: Work Experience ──────────────────────────────────────────────────
+
+const workSchema = z.object({
+  company:    z.string().min(2, 'Required'),
+  role:       z.string().min(2, 'Required'),
+  description:z.string().optional(),
+  start_date: z.string().min(1, 'Required'),
+  end_date:   z.string().optional(),
+  current:    z.boolean().optional(),
+})
+type WorkForm = z.infer<typeof workSchema>
+
+function Step5WorkExperience({
+  onNext,
+  onBack,
+  onSkip,
+}: {
+  onNext: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<WorkForm>({
+    resolver: zodResolver(workSchema),
+    defaultValues: { current: false },
+  })
+  const isCurrent = watch('current')
+
+  const save = useMutation({
+    mutationFn: (v: WorkForm) => talentApi.addWorkExperience(v),
+    onSuccess: onNext,
+    onError: () => toast.error('Failed to save — try again'),
+  })
+
+  return (
+    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Work Experience</h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Add your most recent role. You can add more from your profile page.
+      </p>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Company</label>
+          <Input placeholder="Paystack" {...register('company')} />
+          {errors.company && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.company.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Role / Title</label>
+          <Input placeholder="Frontend Engineer" {...register('role')} />
+          {errors.role && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.role.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+            Description <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+          </label>
+          <textarea
+            rows={3}
+            placeholder="What did you work on?"
+            {...register('description')}
+            className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] focus:border-[var(--color-brand-cyan)] text-[14px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] bg-white resize-none outline-none transition-colors"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Start Date</label>
+            <Input type="month" {...register('start_date')} />
+            {errors.start_date && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.start_date.message}</p>}
+          </div>
+          <div>
+            <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">End Date</label>
+            <Input type="month" disabled={!!isCurrent} {...register('end_date')} />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-[13px] text-[var(--color-text-primary)] cursor-pointer">
+          <input type="checkbox" {...register('current')} className="accent-[var(--color-brand-cyan)]" />
+          I currently work here
+        </label>
+      </div>
+
+      <StepNav step={5} onBack={onBack} onSkip={onSkip} isLoading={save.isPending} />
+    </form>
+  )
+}
+
+// ── STEP 6: Skills ───────────────────────────────────────────────────────────
+
+function Step6Skills({
+  onNext,
+  onBack,
+  onSkip,
+}: {
+  onNext: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const [input, setInput]   = useState('')
+  const [skills, setSkills] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
 
   function addSkill(raw: string) {
     const tag = raw.trim().replace(/,+$/, '')
-    if (!tag || skillList.includes(tag)) return
-    const next = [...skillList, tag]
-    setSkillList(next)
-    form2.setValue('skills', next.join(', '), { shouldValidate: true })
-    setSkillInput('')
+    if (!tag || skills.includes(tag)) return
+    setSkills((prev) => [...prev, tag])
+    setInput('')
   }
 
   function removeSkill(s: string) {
-    const next = skillList.filter((x) => x !== s)
-    setSkillList(next)
-    form2.setValue('skills', next.join(', '), { shouldValidate: true })
+    setSkills((prev) => prev.filter((x) => x !== s))
   }
 
-  function toggleJobType(t: string) {
-    setJobTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
+  async function handleSubmit(e: { preventDefault(): void }) {
+    e.preventDefault()
+    if (input) addSkill(input)
+    if (skills.length === 0) { onNext(); return }
+
+    setSaving(true)
+    try {
+      await Promise.all(
+        skills.map((name) =>
+          api.post('talent/profile/skills', { json: { name } }).json<unknown>(),
+        ),
+      )
+      onNext()
+    } catch {
+      toast.error('Failed to save skills — try again')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function handleFinalSubmit(v: Step3) {
-    const v1 = form1.getValues()
-    submit.mutate({
-      headline:    v1.headline,
-      location:    v1.location,
-      experience,
-      job_types:   jobTypes,
-      skills:      skillList,
-      bio:         v.bio,
-    })
+  return (
+    <form onSubmit={handleSubmit}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Skills</h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Add your key skills. Press Enter or comma to add each one.
+      </p>
+
+      <div
+        className={cn(
+          'flex flex-wrap gap-2 p-3 rounded-[var(--radius-md)] border-2 min-h-[56px] transition-colors',
+          'border-[var(--color-border)] focus-within:border-[var(--color-brand-cyan)]',
+        )}
+      >
+        {skills.map((s) => (
+          <span
+            key={s}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--color-brand-cyan-soft)] text-[var(--color-brand-cyan)] text-[12px] font-[600]"
+          >
+            {s}
+            <button type="button" onClick={() => removeSkill(s)} className="hover:opacity-60 leading-none">×</button>
+          </span>
+        ))}
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill(input) }
+            if (e.key === 'Backspace' && !input && skills.length) removeSkill(skills[skills.length - 1])
+          }}
+          onBlur={() => { if (input) addSkill(input) }}
+          placeholder={skills.length ? '' : 'React, Python, Product Design…'}
+          className="flex-1 min-w-[140px] outline-none text-[14px] bg-transparent text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)]"
+        />
+      </div>
+
+      <StepNav step={6} onBack={onBack} onSkip={onSkip} isLoading={saving} />
+    </form>
+  )
+}
+
+// ── STEP 7: Hobbies & Interests ──────────────────────────────────────────────
+
+function Step7Hobbies({
+  onNext,
+  onBack,
+  onSkip,
+}: {
+  onNext: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const [input, setInput]     = useState('')
+  const [hobbies, setHobbies] = useState<string[]>([])
+  const [saving, setSaving]   = useState(false)
+
+  function addHobby(raw: string) {
+    const tag = raw.trim().replace(/,+$/, '')
+    if (!tag || hobbies.includes(tag)) return
+    setHobbies((prev) => [...prev, tag])
+    setInput('')
+  }
+
+  function removeHobby(s: string) {
+    setHobbies((prev) => prev.filter((x) => x !== s))
+  }
+
+  async function handleSubmit(e: { preventDefault(): void }) {
+    e.preventDefault()
+    if (input) addHobby(input)
+    if (hobbies.length === 0) { onNext(); return }
+
+    setSaving(true)
+    try {
+      await Promise.all(
+        hobbies.map((name) =>
+          api.post('talent/profile/hobbies', { json: { name } }).json<unknown>(),
+        ),
+      )
+      onNext()
+    } catch {
+      toast.error('Failed to save — try again')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">
+        Hobbies & Interests
+      </h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Share what you enjoy outside of work. Press Enter or comma to add each one.
+      </p>
+
+      <div
+        className={cn(
+          'flex flex-wrap gap-2 p-3 rounded-[var(--radius-md)] border-2 min-h-[56px] transition-colors',
+          'border-[var(--color-border)] focus-within:border-[var(--color-brand-cyan)]',
+        )}
+      >
+        {hobbies.map((h) => (
+          <span
+            key={h}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FFF0E5] text-[#FF8A3D] text-[12px] font-[600]"
+          >
+            {h}
+            <button type="button" onClick={() => removeHobby(h)} className="hover:opacity-60 leading-none">×</button>
+          </span>
+        ))}
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addHobby(input) }
+            if (e.key === 'Backspace' && !input && hobbies.length) removeHobby(hobbies[hobbies.length - 1])
+          }}
+          onBlur={() => { if (input) addHobby(input) }}
+          placeholder={hobbies.length ? '' : 'Travelling, Photography, Football…'}
+          className="flex-1 min-w-[140px] outline-none text-[14px] bg-transparent text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)]"
+        />
+      </div>
+
+      <StepNav step={7} onBack={onBack} onSkip={onSkip} isLoading={saving} />
+    </form>
+  )
+}
+
+// ── STEP 8: Language ─────────────────────────────────────────────────────────
+
+const PROFICIENCY_LEVELS = ['Beginner', 'Intermediate', 'Fluent', 'Native']
+
+const languageSchema = z.object({
+  name:        z.string().min(2, 'Required'),
+  proficiency: z.string().min(1, 'Select a level'),
+})
+type LanguageForm = z.infer<typeof languageSchema>
+
+function Step8Language({
+  onFinish,
+  onBack,
+  onSkip,
+}: {
+  onFinish: () => void
+  onBack: () => void
+  onSkip: () => void
+}) {
+  const { register, handleSubmit, formState: { errors } } = useForm<LanguageForm>({
+    resolver: zodResolver(languageSchema),
+  })
+
+  const save = useMutation({
+    mutationFn: (v: LanguageForm) =>
+      api.post('talent/profile/languages', { json: v }).json<unknown>(),
+    onSuccess: onFinish,
+    onError: () => toast.error('Failed to save — try again'),
+  })
+
+  return (
+    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Language</h1>
+      <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
+        Add the languages you speak. You can add more from your profile.
+      </p>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Language</label>
+          <Input placeholder="English" {...register('name')} />
+          {errors.name && <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.name.message}</p>}
+        </div>
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Proficiency</label>
+          <select
+            {...register('proficiency')}
+            className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 border-[var(--color-border)] focus:border-[var(--color-brand-cyan)] text-[14px] text-[var(--color-text-primary)] bg-white outline-none transition-colors"
+          >
+            <option value="">Select proficiency level</option>
+            {PROFICIENCY_LEVELS.map((l) => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+          {errors.proficiency && (
+            <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.proficiency.message}</p>
+          )}
+        </div>
+      </div>
+
+      <StepNav
+        step={8}
+        onBack={onBack}
+        onSkip={onSkip}
+        isLoading={save.isPending}
+        continueLabel="Finish setup"
+      />
+    </form>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export function Component() {
+  const navigate = useNavigate()
+  const user     = useAuthStore((s) => s.user)
+  const [step, setStep] = useState(1)
+
+  // If talent already has bio set, skip onboarding (returning user)
+  const { data: profile, isLoading: checkingProfile } = useQuery({
+    queryKey: ['talent-profile-onboarding-check'],
+    queryFn:  talentApi.profile,
+    enabled:  !!user && user.role === 'talent',
+    retry:    false,
+  })
+
+  useEffect(() => {
+    if (profile?.bio) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [profile, navigate])
+
+  const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS))
+  const goBack = () => setStep((s) => Math.max(s - 1, 1))
+  const skip   = () => {
+    if (step === TOTAL_STEPS) { navigate('/dashboard'); return }
+    goNext()
+  }
+
+  function handleFinish() {
+    toast.success('Profile set up! Welcome to Climbr 🎉')
+    navigate('/dashboard')
+  }
+
+  if (checkingProfile) {
+    return (
+      <RequireAuth>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[var(--color-brand-cyan)] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </RequireAuth>
+    )
   }
 
   return (
@@ -119,183 +717,30 @@ export function Component() {
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-lg">
           {/* Logo */}
-          <div className="mb-10">
+          <div className="mb-8 flex items-center justify-between">
             <span className="inline-flex items-center px-4 py-2 rounded-full bg-[var(--color-brand-navy)] text-white text-[15px] font-[700]">
               Climbr
             </span>
+            <span className="text-[13px] text-[var(--color-text-tertiary)]">
+              Step {step} of {TOTAL_STEPS} — {STEP_LABELS[step - 1]}
+            </span>
           </div>
 
-          <StepDots current={step} total={3} />
+          <ProgressBar current={step} />
 
-          {/* ─── Step 1: Basics ─────────────────────────────────────────── */}
-          {step === 1 && (
-            <>
-              <h1 className="text-[28px] font-[700] text-[var(--color-brand-navy)] mb-1">
-                Hey {user?.firstName}, let's set up your profile
-              </h1>
-              <p className="text-[14px] text-[var(--color-text-secondary)] mb-8">
-                This takes 2 minutes and helps employers find you.
-              </p>
-
-              <form onSubmit={form1.handleSubmit(() => setStep(2))} className="space-y-5">
-                <div>
-                  <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
-                    Headline <span className="text-[var(--color-text-tertiary)] font-[400]">(e.g. "Frontend Engineer · Lagos")</span>
-                  </label>
-                  <Input placeholder="What's your professional title?" {...form1.register('headline')} />
-                  {form1.formState.errors.headline && (
-                    <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{form1.formState.errors.headline.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Location</label>
-                  <Input placeholder="City, Country" {...form1.register('location')} />
-                  {form1.formState.errors.location && (
-                    <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{form1.formState.errors.location.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[13px] font-[600] text-[var(--color-text-primary)] mb-3">Experience level</p>
-                  <div className="space-y-2">
-                    {EXP_OPTIONS.map(({ id, label, desc }) => (
-                      <button key={id} type="button" onClick={() => setExp(id)}
-                        className={cn('w-full flex items-center gap-4 px-4 py-3 rounded-[var(--radius-md)] border-2 transition-all text-left',
-                          experience === id
-                            ? 'border-[var(--color-brand-cyan)] bg-[var(--color-brand-cyan-soft)]'
-                            : 'border-[var(--color-border)] hover:border-[var(--color-brand-cyan)]/40'
-                        )}>
-                        <div>
-                          <p className="text-[14px] font-[600] text-[var(--color-text-primary)]">{label}</p>
-                          <p className="text-[12px] text-[var(--color-text-secondary)]">{desc}</p>
-                        </div>
-                        {experience === id && (
-                          <div className="ml-auto w-4 h-4 rounded-full bg-[var(--color-brand-cyan)] flex items-center justify-center shrink-0">
-                            <div className="w-2 h-2 rounded-full bg-white" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full mt-2">Continue</Button>
-              </form>
-            </>
-          )}
-
-          {/* ─── Step 2: Skills & job types ─────────────────────────────── */}
-          {step === 2 && (
-            <>
-              <button type="button" onClick={() => setStep(1)}
-                className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] mb-6 flex items-center gap-1">
-                ← Back
-              </button>
-              <h1 className="text-[28px] font-[700] text-[var(--color-brand-navy)] mb-1">Skills & preferences</h1>
-              <p className="text-[14px] text-[var(--color-text-secondary)] mb-8">
-                Help employers match you with the right opportunities.
-              </p>
-
-              <form onSubmit={form2.handleSubmit(() => setStep(3))} className="space-y-6">
-                {/* Skills tag input */}
-                <div>
-                  <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
-                    Skills <span className="text-[var(--color-text-tertiary)] font-[400]">(press Enter or comma to add)</span>
-                  </label>
-                  <div className={cn('flex flex-wrap gap-2 p-3 rounded-[var(--radius-md)] border-2 min-h-[48px] transition-colors',
-                    form2.formState.errors.skills ? 'border-[var(--color-brand-pink)]' : 'border-[var(--color-border)] focus-within:border-[var(--color-brand-cyan)]'
-                  )}>
-                    {skillList.map((s) => (
-                      <span key={s} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--color-brand-cyan-soft)] text-[var(--color-brand-cyan)] text-[12px] font-[600]">
-                        {s}
-                        <button type="button" onClick={() => removeSkill(s)} className="hover:opacity-60">×</button>
-                      </span>
-                    ))}
-                    <input
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill(skillInput) }
-                        if (e.key === 'Backspace' && !skillInput && skillList.length) removeSkill(skillList[skillList.length - 1])
-                      }}
-                      onBlur={() => { if (skillInput) addSkill(skillInput) }}
-                      placeholder={skillList.length ? '' : 'React, Python, Product Management…'}
-                      className="flex-1 min-w-[120px] outline-none text-[14px] bg-transparent text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)]"
-                    />
-                  </div>
-                  {/* hidden input for RHF validation */}
-                  <input type="hidden" {...form2.register('skills')} />
-                  {form2.formState.errors.skills && (
-                    <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{form2.formState.errors.skills.message}</p>
-                  )}
-                </div>
-
-                {/* Job type multi-select */}
-                <div>
-                  <p className="text-[13px] font-[600] text-[var(--color-text-primary)] mb-3">
-                    Preferred job types <span className="text-[var(--color-text-tertiary)] font-[400]">(select all that apply)</span>
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {JOB_TYPE_OPTIONS.map((t) => (
-                      <button key={t} type="button" onClick={() => toggleJobType(t)}
-                        className={cn('px-4 py-2 rounded-full border-2 text-[13px] font-[600] transition-all',
-                          jobTypes.includes(t)
-                            ? 'border-[var(--color-brand-cyan)] bg-[var(--color-brand-cyan-soft)] text-[var(--color-brand-cyan)]'
-                            : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-brand-cyan)]/40'
-                        )}>
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full">Continue</Button>
-              </form>
-            </>
-          )}
-
-          {/* ─── Step 3: Bio ─────────────────────────────────────────────── */}
-          {step === 3 && (
-            <>
-              <button type="button" onClick={() => setStep(2)}
-                className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] mb-6 flex items-center gap-1">
-                ← Back
-              </button>
-              <h1 className="text-[28px] font-[700] text-[var(--color-brand-navy)] mb-1">Tell your story</h1>
-              <p className="text-[14px] text-[var(--color-text-secondary)] mb-8">
-                A short bio helps you stand out. Keep it genuine.
-              </p>
-
-              <form onSubmit={form3.handleSubmit(handleFinalSubmit)} className="space-y-4">
-                <div>
-                  <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Bio</label>
-                  <textarea
-                    rows={5}
-                    placeholder="I'm a product designer based in Lagos with 3 years of experience building fintech products..."
-                    {...form3.register('bio')}
-                    className={cn(
-                      'w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 text-[14px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] bg-white resize-none outline-none transition-colors',
-                      form3.formState.errors.bio
-                        ? 'border-[var(--color-brand-pink)]'
-                        : 'border-[var(--color-border)] focus:border-[var(--color-brand-cyan)]'
-                    )}
-                  />
-                  {form3.formState.errors.bio && (
-                    <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{form3.formState.errors.bio.message}</p>
-                  )}
-                </div>
-
-                <Button type="submit" className="w-full mt-2" disabled={submit.isPending}>
-                  {submit.isPending ? 'Saving…' : 'Finish setup'}
-                </Button>
-
-                <button type="button" onClick={() => navigate('/dashboard')}
-                  className="w-full text-center text-[13px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]">
-                  Skip for now
-                </button>
-              </form>
-            </>
+          {step === 1 && <Step1Bio       onNext={goNext}    onSkip={skip} />}
+          {step === 2 && <Step2Education onNext={goNext} onBack={goBack} onSkip={skip} />}
+          {step === 3 && <Step3Resume    onNext={goNext} onBack={goBack} onSkip={skip} />}
+          {step === 4 && <Step4Certificates onNext={goNext} onBack={goBack} onSkip={skip} />}
+          {step === 5 && <Step5WorkExperience onNext={goNext} onBack={goBack} onSkip={skip} />}
+          {step === 6 && <Step6Skills    onNext={goNext} onBack={goBack} onSkip={skip} />}
+          {step === 7 && <Step7Hobbies   onNext={goNext} onBack={goBack} onSkip={skip} />}
+          {step === 8 && (
+            <Step8Language
+              onFinish={handleFinish}
+              onBack={goBack}
+              onSkip={() => navigate('/dashboard')}
+            />
           )}
         </div>
       </div>
