@@ -358,7 +358,9 @@ function StepNav({
 // ── STEP 1: Bio / Summary ────────────────────────────────────────────────────
 
 const bioSchema = z.object({
-  bio: z.string().min(20, 'At least 20 characters').max(600, 'Max 600 characters'),
+  bio:      z.string().min(20, 'At least 20 characters').max(600, 'Max 600 characters'),
+  location: z.string().optional(),
+  phone:    z.string().optional(),
 })
 type BioForm = z.infer<typeof bioSchema>
 
@@ -367,7 +369,7 @@ function Step1Bio({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }
   const charCount = watch('bio', '').length
 
   const save = useMutation({
-    mutationFn: (v: BioForm) => talentApi.updateProfile({ bio: v.bio }),
+    mutationFn: (v: BioForm) => talentApi.updateProfile({ bio: v.bio, location: v.location || undefined, phone: v.phone || undefined }),
     onSuccess: onNext,
     onError: () => toast.error('Failed to save — try again'),
   })
@@ -381,26 +383,43 @@ function Step1Bio({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }
         Write a short bio. This is the first thing employers see on your profile.
       </p>
 
-      <div>
-        <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
-          Summary / Bio
-        </label>
-        <textarea
-          rows={5}
-          placeholder="I'm a product designer based in Lagos with 3 years of experience building fintech products…"
-          {...register('bio')}
-          className={cn(
-            'w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 text-[14px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] bg-white resize-none outline-none transition-colors',
-            errors.bio
-              ? 'border-[var(--color-brand-pink)]'
-              : 'border-[var(--color-border)] focus:border-[var(--color-brand-cyan)]',
-          )}
-        />
-        <div className="flex justify-between mt-1">
-          {errors.bio
-            ? <p className="text-[12px] text-[var(--color-brand-pink)]">{errors.bio.message}</p>
-            : <span />}
-          <p className="text-[12px] text-[var(--color-text-tertiary)]">{charCount}/600</p>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+            Summary / Bio
+          </label>
+          <textarea
+            rows={4}
+            placeholder="I'm a product designer based in Lagos with 3 years of experience building fintech products…"
+            {...register('bio')}
+            className={cn(
+              'w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 text-[14px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] bg-white resize-none outline-none transition-colors',
+              errors.bio
+                ? 'border-[var(--color-brand-pink)]'
+                : 'border-[var(--color-border)] focus:border-[var(--color-brand-cyan)]',
+            )}
+          />
+          <div className="flex justify-between mt-1">
+            {errors.bio
+              ? <p className="text-[12px] text-[var(--color-brand-pink)]">{errors.bio.message}</p>
+              : <span />}
+            <p className="text-[12px] text-[var(--color-text-tertiary)]">{charCount}/600</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+              Location <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+            </label>
+            <Input placeholder="Lagos, Nigeria" {...register('location')} />
+          </div>
+          <div>
+            <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">
+              Phone <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+            </label>
+            <Input type="tel" placeholder="+234 800 000 0000" {...register('phone')} />
+          </div>
         </div>
       </div>
 
@@ -486,12 +505,7 @@ function Step2Education({
   )
 }
 
-// ── STEP 3: Resume ───────────────────────────────────────────────────────────
-
-const resumeSchema = z.object({
-  resume_url: z.string().url('Enter a valid URL').or(z.literal('')),
-})
-type ResumeForm = z.infer<typeof resumeSchema>
+// ── STEP 3: Photo & Resume ───────────────────────────────────────────────────
 
 function Step3Resume({
   onNext,
@@ -502,40 +516,103 @@ function Step3Resume({
   onBack: () => void
   onSkip: () => void
 }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<ResumeForm>({
-    resolver: zodResolver(resumeSchema),
-  })
+  const [photoFile, setPhotoFile]     = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [resumeFile, setResumeFile]   = useState<File | null>(null)
+  const [saving, setSaving]           = useState(false)
 
-  const save = useMutation({
-    mutationFn: (v: ResumeForm) =>
-      v.resume_url ? talentApi.updateProfile({ resume_url: v.resume_url }) : Promise.resolve(null),
-    onSuccess: onNext,
-    onError: () => toast.error('Failed to save — try again'),
-  })
+  function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setPhotoFile(f)
+    setPhotoPreview(URL.createObjectURL(f))
+    e.target.value = ''
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!photoFile && !resumeFile) { onNext(); return }
+    setSaving(true)
+    try {
+      if (photoFile) {
+        const form = new FormData()
+        form.append('profile_image', photoFile)
+        await api.post('talent/profile/image/upload', { body: form }).json<unknown>()
+      }
+      if (resumeFile) {
+        const form = new FormData()
+        form.append('resume', resumeFile)
+        await api.post('talent/profile/resume', { body: form }).json<unknown>()
+      }
+      onNext()
+    } catch {
+      toast.error('Upload failed — try again')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <form onSubmit={handleSubmit((v) => save.mutate(v))}>
-      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Resume</h1>
+    <form onSubmit={handleSubmit}>
+      <h1 className="text-[26px] font-[700] text-[var(--color-text-primary)] mb-1">Photo & Resume</h1>
       <p className="text-[14px] text-[var(--color-text-secondary)] mb-6">
-        Paste a link to your CV or resume — Google Drive, Dropbox, or any public link works.
+        Add a photo and upload your CV so employers can get the full picture.
       </p>
 
-      <div>
-        <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-1.5">Resume URL</label>
-        <Input
-          type="url"
-          placeholder="https://drive.google.com/…"
-          {...register('resume_url')}
-        />
-        {errors.resume_url && (
-          <p className="text-[12px] text-[var(--color-brand-pink)] mt-1">{errors.resume_url.message}</p>
-        )}
-        <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2">
-          Make sure the link is set to "Anyone with the link can view".
-        </p>
+      <div className="space-y-5">
+        {/* Profile photo */}
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-2">
+            Profile photo <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+          </label>
+          <label className="flex items-center gap-4 cursor-pointer group">
+            <div className="w-16 h-16 rounded-full bg-[var(--color-surface)] border-2 border-dashed border-[var(--color-border)] group-hover:border-[var(--color-brand-cyan)] overflow-hidden flex items-center justify-center shrink-0 transition-colors">
+              {photoPreview
+                ? <img src={photoPreview} alt="preview" className="w-full h-full object-cover" />
+                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              }
+            </div>
+            <div>
+              <p className="text-[13px] font-[600] text-[var(--color-brand-cyan)]">
+                {photoPreview ? 'Change photo' : 'Upload photo'}
+              </p>
+              <p className="text-[12px] text-[var(--color-text-tertiary)]">JPG or PNG · max 5 MB</p>
+            </div>
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pickPhoto} />
+          </label>
+        </div>
+
+        {/* Resume upload */}
+        <div>
+          <label className="block text-[13px] font-[600] text-[var(--color-text-primary)] mb-2">
+            Resume / CV <span className="text-[var(--color-text-tertiary)] font-[400]">(optional)</span>
+          </label>
+          <label className={cn(
+            'flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] border-2 cursor-pointer transition-colors',
+            resumeFile
+              ? 'border-[var(--color-brand-cyan)] bg-[var(--color-brand-cyan-soft)]'
+              : 'border-dashed border-[var(--color-border)] hover:border-[var(--color-brand-cyan)]',
+          )}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-text-secondary)]">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-[600] text-[var(--color-text-primary)] truncate">
+                {resumeFile ? resumeFile.name : 'Click to upload PDF or DOCX'}
+              </p>
+              <p className="text-[12px] text-[var(--color-text-tertiary)]">Max 10 MB</p>
+            </div>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={(e) => { setResumeFile(e.target.files?.[0] ?? null); e.target.value = '' }}
+            />
+          </label>
+        </div>
       </div>
 
-      <StepNav step={3} onBack={onBack} onSkip={onSkip} isLoading={save.isPending} />
+      <StepNav step={3} onBack={onBack} onSkip={onSkip} isLoading={saving} />
     </form>
   )
 }
