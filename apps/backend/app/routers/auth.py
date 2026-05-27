@@ -48,6 +48,13 @@ def _auth_response(user: User) -> dict:
     """Build the full auth response the frontend expects."""
     token_data = auth_service.create_user_token(user)
     first_name, last_name = _user_names(user)
+
+    # Surface a basic profile_completion flag so the frontend can decide
+    # whether to redirect a talent user to /onboarding after login.
+    profile_complete = False
+    if user.user_type.value == "talent" and user.talent:
+        profile_complete = bool(user.talent.bio)
+
     return {
         **token_data,
         "user": {
@@ -57,6 +64,7 @@ def _auth_response(user: User) -> dict:
             "last_name": last_name,
             "role": user.user_type.value,
             "is_verified": user.is_verified,
+            "profile_complete": profile_complete,
         },
     }
 

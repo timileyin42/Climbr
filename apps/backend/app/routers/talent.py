@@ -42,7 +42,20 @@ async def get_profile(
     language_entries = UserService.get_languages(db, talent_id)
     skill_entries = UserService.get_skills(db, talent_id)
     
-    # Construct the profile response
+    # Compute a simple profile completion score (0–100)
+    filled = sum([
+        bool(talent.bio),
+        bool(talent.resume_url),
+        bool(talent.profile_image_url),
+        bool(education_entries),
+        bool(work_experience_entries),
+        bool(skill_entries),
+        bool(certificate_entries),
+        bool(hobby_entries),
+        bool(language_entries),
+    ])
+    completion = round((filled / 9) * 100)
+
     profile = {
         "id": talent.id,
         "email": talent.user.email if talent.user else None,
@@ -50,8 +63,11 @@ async def get_profile(
         "last_name": talent.last_name,
         "phone": talent.phone,
         "bio": talent.bio,
+        "resume_url": talent.resume_url,
+        "profile_image_url": talent.profile_image_url,
+        "profile_completion": completion,
         "profile": {
-            "summary": talent.bio,  # For now, using bio as summary
+            "summary": talent.bio,
             "education": education_entries,
             "work_experience": work_experience_entries,
             "skills": skill_entries,
@@ -60,7 +76,7 @@ async def get_profile(
             "languages": language_entries,
         }
     }
-    
+
     return profile
 
 @router.get("/profile/skills", response_model=List[SkillOut])
