@@ -32,7 +32,13 @@ async def trainer_info(db: Session = Depends(get_db)):
             "price": package.price,
             "quantity": package.quantity,
             "currency": package.currency,
-            "description": f"Post {package.quantity} training{'s' if package.quantity > 1 else ''} for 30 days each"
+            "description": (
+                "Unlimited training posts · Annual · Saves ₦120,000 vs monthly"
+                if package.quantity >= 9999 else
+                "Unlimited training posts · Monthly subscription"
+                if package.quantity >= 999 else
+                f"Post {package.quantity} trainings · ₦{int(package.price // package.quantity):,} per post"
+            )
         })
     
     return {

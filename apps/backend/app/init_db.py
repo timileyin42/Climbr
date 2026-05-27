@@ -52,23 +52,44 @@ def create_admin_user(db: Session):
     print(f"Admin user created: {settings.ADMIN_EMAIL}")
 
 
-def init_pricing(db: Session):
-    # Prices in NGN (Milestone K: Paystack / NGN-only)
-    if db.query(JobPricing).count() == 0:
-        db.add_all([
-            JobPricing(name="Single Job Post", quantity=1, price=5000.0, currency="NGN"),
-            JobPricing(name="5 Job Bundle", quantity=5, price=20000.0, currency="NGN"),
-            JobPricing(name="10 Job Bundle", quantity=10, price=35000.0, currency="NGN"),
-        ])
-        print("Job pricing packages initialised (NGN)")
+_JOB_PACKAGES = [
+    {"name": "Starter",           "quantity": 10,   "price": 5000.0,   "currency": "NGN"},
+    {"name": "Growth",            "quantity": 20,   "price": 10000.0,  "currency": "NGN"},
+    {"name": "Monthly Unlimited", "quantity": 999,  "price": 50000.0,  "currency": "NGN"},
+    {"name": "Annual Unlimited",  "quantity": 9999, "price": 480000.0, "currency": "NGN"},
+]
 
-    if db.query(TrainingPricing).count() == 0:
-        db.add_all([
-            TrainingPricing(name="Single Training Post", quantity=1, price=5000.0, currency="NGN"),
-            TrainingPricing(name="5 Training Bundle", quantity=5, price=20000.0, currency="NGN"),
-            TrainingPricing(name="10 Training Bundle", quantity=10, price=35000.0, currency="NGN"),
-        ])
-        print("Training pricing packages initialised (NGN)")
+_TRAINING_PACKAGES = [
+    {"name": "Starter",           "quantity": 10,   "price": 5000.0,   "currency": "NGN"},
+    {"name": "Growth",            "quantity": 20,   "price": 10000.0,  "currency": "NGN"},
+    {"name": "Monthly Unlimited", "quantity": 999,  "price": 50000.0,  "currency": "NGN"},
+    {"name": "Annual Unlimited",  "quantity": 9999, "price": 480000.0, "currency": "NGN"},
+]
+
+
+def _sync_packages(db, model, packages):
+    existing = {p.name: p for p in db.query(model).all()}
+    target_names = {p["name"] for p in packages}
+
+    for pkg_data in packages:
+        if pkg_data["name"] in existing:
+            pkg = existing[pkg_data["name"]]
+            pkg.quantity = pkg_data["quantity"]
+            pkg.price    = pkg_data["price"]
+            pkg.currency = pkg_data["currency"]
+            pkg.is_active = True
+        else:
+            db.add(model(**pkg_data, is_active=True))
+
+    for name, pkg in existing.items():
+        if name not in target_names:
+            pkg.is_active = False
+
+
+def init_pricing(db: Session):
+    _sync_packages(db, JobPricing, _JOB_PACKAGES)
+    _sync_packages(db, TrainingPricing, _TRAINING_PACKAGES)
+    print("Pricing packages synced (NGN)")
 
 
 if __name__ == "__main__":
