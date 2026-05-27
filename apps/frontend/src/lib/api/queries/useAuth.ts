@@ -48,7 +48,6 @@ export function useRegister() {
 }
 
 export function useGoogleSignIn(role?: 'talent' | 'employer' | 'trainer') {
-  const navigate = useNavigate()
   return useMutation({
     mutationFn: async () => {
       const result = await signInWithPopup(auth, googleProvider)
@@ -57,8 +56,8 @@ export function useGoogleSignIn(role?: 'talent' | 'employer' | 'trainer') {
     },
     onSuccess: (data) => {
       handleAuthResponse(data)
-      if (data.user.role === 'talent') navigate('/onboarding')
-      else navigate(dashboardFor(data.user.role))
+      // Use location.replace to bypass RedirectIfAuthed re-render race on the signup page
+      window.location.replace(data.user.role === 'talent' ? '/onboarding' : dashboardFor(data.user.role))
     },
     onError: () => toast.error('Google sign-in failed'),
   })
