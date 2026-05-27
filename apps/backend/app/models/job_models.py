@@ -9,6 +9,7 @@ class JobType(str, Enum):
     PART_TIME = "part_time"
     CONTRACT = "contract"
     INTERNSHIP = "internship"
+    REMOTE = "remote"
     APPRENTICESHIP = "apprenticeship"
     VOLUNTEERING = "volunteering"
     FREELANCE = "freelance"

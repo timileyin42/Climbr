@@ -235,7 +235,10 @@ export function Component() {
           </div>
 
           <p className="text-[13px] text-[var(--color-text-secondary)]">
-            Posting this job will use <strong>1 credit</strong>. You have {credits} remaining.
+            {freePosts > 0
+              ? <>This post uses one of your <strong>{freePosts} free post{freePosts > 1 ? 's' : ''}</strong> this month — no credit deducted.</>
+              : <>Posting this job will use <strong>1 credit</strong>. You have {credits} remaining.</>
+            }
           </p>
 
           <Button className="w-full" style={{ background: 'var(--color-brand-orange)' }} onClick={handlePost} disabled={create.isPending}>
