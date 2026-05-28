@@ -1,5 +1,6 @@
-import { Bookmark, GraduationCap } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Search, Filter, LayoutGrid, List, Bookmark, GraduationCap, ChevronRight, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { JobCard } from '@/components/cards/JobCard'
@@ -14,21 +15,25 @@ import {
 } from '@/lib/api/queries/useTalent'
 import { cn } from '@/lib/utils'
 
-export function Component() {
-  const [tab, setTab] = useState<'jobs' | 'trainings'>('jobs')
+type ViewMode = 'grid' | 'list'
 
-  const queryClient   = useQueryClient()
+export function Component() {
+  const [tab,    setTab]    = useState<'jobs' | 'trainings'>('jobs')
+  const [search, setSearch] = useState('')
+  const [view,   setView]   = useState<ViewMode>('grid')
+
+  const queryClient = useQueryClient()
   const { data: savedJobs,      isLoading: loadingJobs }      = useSavedJobs()
   const { data: savedTrainings, isLoading: loadingTrainings } = useSavedTrainings()
-  const unsave  = useUnsaveJob()
-  const resave  = useSaveJob()
+  const unsave = useUnsaveJob()
+  const resave = useSaveJob()
 
   function handleUnsaveJob(savedId: number, jobId: number, jobTitle: string) {
     unsave.mutate(savedId, {
       onSuccess: () => {
         toast.custom(
           (t) => (
-            <div className="flex items-center gap-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-lg)] shadow-lg px-4 py-3 min-w-[300px]">
+            <div className="flex items-center gap-3 bg-white border border-[var(--color-border)] rounded-2xl shadow-lg px-4 py-3 min-w-[300px]">
               <div className="flex-1">
                 <p className="text-[13px] font-[700] text-[var(--color-text-primary)]">Successful!</p>
                 <p className="text-[13px] text-[var(--color-text-secondary)]">
@@ -57,15 +62,28 @@ export function Component() {
     })
   }
 
+  const filteredJobs = search.trim()
+    ? (savedJobs ?? []).filter((s) =>
+        s.job.title.toLowerCase().includes(search.toLowerCase()) ||
+        s.job.employer_name.toLowerCase().includes(search.toLowerCase()) ||
+        s.job.location.toLowerCase().includes(search.toLowerCase())
+      )
+    : (savedJobs ?? [])
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ── Breadcrumb + header ──────────────────────────────────────────── */}
       <div>
-        <p className="text-[12px] text-[var(--color-text-tertiary)] mb-0.5">Job Listings › Saved Jobs</p>
+        <nav className="flex items-center gap-1 text-[12px] text-[var(--color-text-tertiary)] mb-2">
+          <Link to="/jobs" className="hover:text-[var(--color-text-primary)] transition-colors">Job Listings</Link>
+          <ChevronRight className="w-3.5 h-3.5" />
+          <span className="text-[var(--color-text-primary)] font-[500]">Saved Jobs</span>
+        </nav>
         <h1 className="text-[28px] font-[700] text-[var(--color-text-primary)]">Saved Jobs</h1>
       </div>
 
-      {/* Tabs */}
+      {/* ── Tabs ────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 border-b border-[var(--color-border)]">
         {(['jobs', 'trainings'] as const).map((t) => (
           <button
@@ -84,15 +102,62 @@ export function Component() {
         ))}
       </div>
 
-      {/* Jobs tab */}
+      {/* ── Search + view controls ───────────────────────────────────────── */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)]" />
+          <input
+            type="text"
+            placeholder="Search by industry, location, type…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-10 pl-10 pr-16 rounded-full border border-[var(--color-border)] text-[13px] text-[var(--color-text-primary)] bg-white placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-brand-cyan)] transition-colors"
+          />
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[var(--color-border)] text-[10px] text-[var(--color-text-tertiary)] bg-[var(--color-bg-secondary)]">
+            ⌘K
+          </kbd>
+        </div>
+
+        {/* View toggles */}
+        <div className="flex items-center border border-[var(--color-border)] rounded-full overflow-hidden shrink-0">
+          <button
+            type="button"
+            onClick={() => setView('grid')}
+            className={cn('w-9 h-9 flex items-center justify-center transition-colors',
+              view === 'grid' ? 'bg-[var(--color-text-primary)] text-white' : 'text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)]'
+            )}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className={cn('w-9 h-9 flex items-center justify-center transition-colors',
+              view === 'list' ? 'bg-[var(--color-text-primary)] text-white' : 'text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)]'
+            )}
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className="flex items-center gap-1.5 h-10 px-4 rounded-full border border-[var(--color-border)] text-[13px] font-[600] text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)] transition-colors shrink-0"
+        >
+          <Filter className="w-3.5 h-3.5" />
+          Filter
+        </button>
+      </div>
+
+      {/* ── Jobs tab ─────────────────────────────────────────────────────── */}
       {tab === 'jobs' && (
         loadingJobs ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={cn('grid gap-4', view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1')}>
             {Array.from({ length: 4 }, (_, i) => <JobCardSkeleton key={i} />)}
           </div>
-        ) : savedJobs?.length ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedJobs.map((s) => (
+        ) : filteredJobs.length ? (
+          <div className={cn('grid gap-4', view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1')}>
+            {filteredJobs.map((s) => (
               <JobCard
                 key={s.id}
                 job={s.job}
@@ -100,6 +165,17 @@ export function Component() {
                 onSave={() => handleUnsaveJob(s.id, s.job.id, s.job.title)}
               />
             ))}
+          </div>
+        ) : search ? (
+          <div className="flex flex-col items-center py-16">
+            <p className="text-[15px] font-[600] text-[var(--color-text-primary)] mb-1">No results for "{search}"</p>
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="flex items-center gap-1 text-[13px] text-[var(--color-brand-cyan)] font-[600] mt-2 hover:underline"
+            >
+              <X className="w-3 h-3" /> Clear search
+            </button>
           </div>
         ) : (
           <EmptyState
@@ -111,14 +187,14 @@ export function Component() {
         )
       )}
 
-      {/* Trainings tab */}
+      {/* ── Trainings tab ────────────────────────────────────────────────── */}
       {tab === 'trainings' && (
         loadingTrainings ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={cn('grid gap-4', view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1')}>
             {Array.from({ length: 4 }, (_, i) => <JobCardSkeleton key={i} />)}
           </div>
         ) : savedTrainings?.length ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={cn('grid gap-4', view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1')}>
             {savedTrainings.map((s) => (
               <TrainingCard key={s.id} training={s.training} />
             ))}

@@ -5,6 +5,7 @@ import { api } from '@/lib/api/client'
 export interface Job {
   id: number
   title: string
+  description?: string | null
   industry: string | null
   location: string
   job_type: string

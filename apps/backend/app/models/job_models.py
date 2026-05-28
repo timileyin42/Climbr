@@ -68,6 +68,7 @@ class JobOut(JobBase):
 class JobListing(BaseModel):
     id: int
     title: str
+    description: Optional[str] = None
     industry: Optional[str] = None
     location: str
     job_type: JobType
