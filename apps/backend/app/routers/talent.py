@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body, UploadFile, File, BackgroundTasks, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, literal
+from sqlalchemy import func, or_, literal, case
 import sqlalchemy as sa
 import logging
 import os
@@ -912,16 +912,16 @@ async def get_all_applications(
     # Get statistics
     job_stats = db.query(
         func.count(JobApplication.id).label('total'),
-        func.sum(func.case([(JobApplication.status == ApplicationStatus.IN_REVIEW, 1)], else_=0)).label('in_review'),
-        func.sum(func.case([(JobApplication.status.in_([ApplicationStatus.ACCEPTED, ApplicationStatus.SHORTLISTED]), 1)], else_=0)).label('accepted'),
-        func.sum(func.case([(JobApplication.status == ApplicationStatus.REJECTED, 1)], else_=0)).label('rejected')
+        func.sum(case((JobApplication.status == ApplicationStatus.IN_REVIEW, 1), else_=0)).label('in_review'),
+        func.sum(case((JobApplication.status.in_([ApplicationStatus.ACCEPTED, ApplicationStatus.SHORTLISTED]), 1), else_=0)).label('accepted'),
+        func.sum(case((JobApplication.status == ApplicationStatus.REJECTED, 1), else_=0)).label('rejected')
     ).filter(JobApplication.talent_id == talent_id).first()
     
     training_stats = db.query(
         func.count(TrainingApplication.id).label('total'),
-        func.sum(func.case([(TrainingApplication.status == ApplicationStatus.IN_REVIEW, 1)], else_=0)).label('in_review'),
-        func.sum(func.case([(TrainingApplication.status.in_([ApplicationStatus.ACCEPTED, ApplicationStatus.SHORTLISTED]), 1)], else_=0)).label('accepted'),
-        func.sum(func.case([(TrainingApplication.status == ApplicationStatus.REJECTED, 1)], else_=0)).label('rejected')
+        func.sum(case((TrainingApplication.status == ApplicationStatus.IN_REVIEW, 1), else_=0)).label('in_review'),
+        func.sum(case((TrainingApplication.status.in_([ApplicationStatus.ACCEPTED, ApplicationStatus.SHORTLISTED]), 1), else_=0)).label('accepted'),
+        func.sum(case((TrainingApplication.status == ApplicationStatus.REJECTED, 1), else_=0)).label('rejected')
     ).filter(TrainingApplication.talent_id == talent_id).first()
     
     # Combine statistics
