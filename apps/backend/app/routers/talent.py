@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body, UploadFile, File, BackgroundTasks, Query
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, literal
 import sqlalchemy as sa
 import logging
 import os
@@ -856,7 +856,7 @@ async def get_all_applications(
         JobApplication.created_at,
         Job.title.label('title'),
         Employer.company_name.label('company_provider'),
-        func.literal('Job').label('type')
+        literal('Job').label('type')
     ).join(Job, JobApplication.job_id == Job.id).join(Employer, Job.employer_id == Employer.id).filter(JobApplication.talent_id == talent_id)
 
     # Get training applications with training and trainer details
@@ -866,7 +866,7 @@ async def get_all_applications(
         TrainingApplication.created_at,
         Training.title.label('title'),
         Trainer.provider_name.label('company_provider'),
-        func.literal('Training').label('type')
+        literal('Training').label('type')
     ).join(Training, TrainingApplication.training_id == Training.id).join(Trainer, Training.trainer_id == Trainer.id).filter(TrainingApplication.talent_id == talent_id)
     
     # Apply filters
