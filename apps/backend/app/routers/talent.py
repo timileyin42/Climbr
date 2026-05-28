@@ -853,7 +853,7 @@ async def get_all_applications(
     job_applications_query = db.query(
         JobApplication.id,
         JobApplication.status,
-        JobApplication.created_at,
+        JobApplication.created_at.label('created_at'),
         Job.title.label('title'),
         Employer.company_name.label('company_provider'),
         literal('Job').label('type')
@@ -863,7 +863,7 @@ async def get_all_applications(
     training_applications_query = db.query(
         TrainingApplication.id,
         TrainingApplication.status,
-        TrainingApplication.created_at,
+        TrainingApplication.created_at.label('created_at'),
         Training.title.label('title'),
         Trainer.provider_name.label('company_provider'),
         literal('Training').label('type')
