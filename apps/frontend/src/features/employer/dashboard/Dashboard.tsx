@@ -50,24 +50,6 @@ export function Component() {
         )}
       </div>
 
-      {/* Post a job CTA */}
-      <div className="bg-[var(--color-brand-orange)] rounded-[var(--radius-xl)] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h2 className="text-[20px] font-[700] text-white">Ready to find your next hire?</h2>
-          <p className="text-white/70 text-[14px] mt-1">
-            {credits > 0
-              ? `You have ${credits} credit${credits > 1 ? 's' : ''} — post a job now.`
-              : 'Purchase credits to post your first job listing.'}
-          </p>
-        </div>
-        <Link to={credits > 0 ? '/employer/jobs/new' : '/employer/credits'}>
-          <Button variant="dark" className="gap-2 shrink-0">
-            <Plus className="w-4 h-4" />
-            {credits > 0 ? 'Post a Job' : 'Buy Credits'}
-          </Button>
-        </Link>
-      </div>
-
       {/* Recent listings */}
       {jobs.length > 0 && (
         <div>

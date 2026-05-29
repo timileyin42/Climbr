@@ -50,25 +50,6 @@ export function Component() {
         )}
       </div>
 
-      {/* Post a training CTA */}
-      <div className="rounded-[var(--radius-xl)] p-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-           style={{ background: '#FFC93C' }}>
-        <div>
-          <h2 className="text-[20px] font-[700] text-[var(--color-brand-navy)]">Ready to train your next cohort?</h2>
-          <p className="text-[var(--color-brand-navy)]/60 text-[14px] mt-1">
-            {credits > 0
-              ? `You have ${credits} credit${credits > 1 ? 's' : ''} — post a training now.`
-              : 'Purchase credits to post your first training programme.'}
-          </p>
-        </div>
-        <Link to={credits > 0 ? '/trainer/trainings/new' : '/trainer/credits'}>
-          <Button variant="dark" className="gap-2 shrink-0">
-            <Plus className="w-4 h-4" />
-            {credits > 0 ? 'Post Training' : 'Buy Credits'}
-          </Button>
-        </Link>
-      </div>
-
       {/* Recent trainings */}
       {trainings.length > 0 && (
         <div>

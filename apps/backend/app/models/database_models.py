@@ -460,7 +460,7 @@ class Payment(Base):
     currency = Column(String, default="NGN")
     payment_method = Column(String)
     transaction_id = Column(String, unique=True, index=True)
-    status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
+    status = Column(Enum(PaymentStatus, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=PaymentStatus.PENDING)
     package_name = Column(String)
     package_quantity = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
