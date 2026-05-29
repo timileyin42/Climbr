@@ -8,6 +8,7 @@ import '../features/auth/signup_screen.dart';
 import '../features/auth/verify_email_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/auth_provider.dart';
+import '../features/onboarding/onboarding_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -24,7 +25,7 @@ final appRouter = GoRouter(
     // ── Protected (stubs for Batch 3+) ──────────────────────────────────────
     GoRoute(
       path: '/onboarding',
-      builder: (_, __) => const _Placeholder('Onboarding coming soon'),
+      builder: (_, __) => const OnboardingScreen(),
     ),
     GoRoute(
       path: '/home',
