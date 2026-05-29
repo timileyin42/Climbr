@@ -9,6 +9,7 @@ import '../features/auth/verify_email_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/auth_provider.dart';
 import '../features/onboarding/onboarding_screen.dart';
+import '../features/home/home_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -29,7 +30,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (_, __) => const _Placeholder('Home coming soon'),
+      builder: (_, __) => const HomeScreen(),
     ),
   ],
 );
@@ -42,25 +43,6 @@ String? _authGuard(BuildContext context, GoRouterState state) {
   if (_publicRoutes.contains(state.matchedLocation)) return null;
   // Everything else eventually checks token — for now just allow through
   return null;
-}
-
-// Lightweight placeholder used until a screen is built
-class _Placeholder extends StatelessWidget {
-  final String label;
-  const _Placeholder(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1A1F),
-      body: Center(
-        child: Text(
-          label,
-          style: const TextStyle(fontFamily: 'Inter', color: Colors.white54, fontSize: 16),
-        ),
-      ),
-    );
-  }
 }
 
 // Provider so widgets can read the router if needed
