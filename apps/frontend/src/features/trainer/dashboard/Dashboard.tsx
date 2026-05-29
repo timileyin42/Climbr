@@ -1,6 +1,5 @@
-import { Layers, Users, CreditCard, BarChart2, Plus } from 'lucide-react'
+import { Layers, Users, CreditCard, BarChart2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { StatCardSkeleton } from '@/components/feedback/Skeleton'
 import { useTrainerTrainings, useTrainerCredits } from '@/lib/api/queries/useTrainer'
 import { useAuthStore } from '@/lib/auth/store'

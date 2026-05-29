@@ -1,6 +1,5 @@
-import { Briefcase, Users, CreditCard, BarChart2, Plus } from 'lucide-react'
+import { Briefcase, Users, CreditCard, BarChart2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { StatCardSkeleton } from '@/components/feedback/Skeleton'
 import { useEmployerJobs, useEmployerCredits } from '@/lib/api/queries/useEmployer'
 import { useAuthStore } from '@/lib/auth/store'
