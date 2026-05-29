@@ -1,23 +1,26 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { Menu, X, LayoutDashboard, Briefcase, GraduationCap, FileText, Bookmark, Settings, Users, CreditCard, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen, LogOut } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Briefcase, GraduationCap, FileText, Bookmark, Settings, Users, CreditCard, BarChart3, MessageSquare, ShieldCheck, PenSquare, BookOpen, LogOut, UserCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, type UserRole } from '@/lib/auth/store'
 import { useLogout } from '@/lib/api/queries/useAuth'
 
 const navConfig: Record<UserRole, { label: string; icon: React.ElementType; to: string }[]> = {
   talent: [
-    { label: 'Dashboard',      icon: LayoutDashboard, to: '/dashboard' },
-    { label: 'Job Listings',   icon: Briefcase,       to: '/jobs' },
-    { label: 'Trainings',      icon: GraduationCap,   to: '/trainings' },
-    { label: 'Applications',   icon: FileText,        to: '/applications' },
-    { label: 'Saved',          icon: Bookmark,        to: '/saved' },
-    { label: 'Settings',       icon: Settings,        to: '/settings' },
+    { label: 'Dashboard',       icon: LayoutDashboard, to: '/dashboard' },
+    { label: 'My Profile',      icon: UserCircle,      to: '/profile' },
+    { label: 'Job Listings',    icon: Briefcase,       to: '/jobs' },
+    { label: 'Trainings',       icon: GraduationCap,   to: '/trainings' },
+    { label: 'My Applications', icon: FileText,        to: '/applications' },
+    { label: 'Saved',           icon: Bookmark,        to: '/saved' },
+    { label: 'Messages',        icon: MessageSquare,   to: '/messages' },
+    { label: 'Settings',        icon: Settings,        to: '/settings' },
   ],
   employer: [
     { label: 'Dashboard',  icon: LayoutDashboard, to: '/employer/dashboard' },
     { label: 'My Jobs',    icon: Briefcase,       to: '/employer/jobs' },
     { label: 'Applicants', icon: Users,           to: '/employer/applicants' },
+    { label: 'Messages',   icon: MessageSquare,   to: '/employer/messages' },
     { label: 'Credits',    icon: CreditCard,      to: '/employer/credits' },
     { label: 'Settings',   icon: Settings,        to: '/employer/settings' },
   ],
@@ -25,6 +28,7 @@ const navConfig: Record<UserRole, { label: string; icon: React.ElementType; to: 
     { label: 'Dashboard',    icon: LayoutDashboard, to: '/trainer/dashboard' },
     { label: 'My Trainings', icon: BookOpen,        to: '/trainer/trainings' },
     { label: 'Applicants',   icon: Users,           to: '/trainer/applicants' },
+    { label: 'Messages',     icon: MessageSquare,   to: '/trainer/messages' },
     { label: 'Credits',      icon: CreditCard,      to: '/trainer/credits' },
     { label: 'Settings',     icon: Settings,        to: '/trainer/settings' },
   ],
