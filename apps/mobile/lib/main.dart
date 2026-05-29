@@ -14,18 +14,19 @@ void main() {
   runApp(const ProviderScope(child: ClimbrApp()));
 }
 
-class ClimbrApp extends StatelessWidget {
+class ClimbrApp extends ConsumerWidget {
   const ClimbrApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Climbr',
       debugShowCheckedModeBanner: false,
       theme: climbrLight(),
       darkTheme: climbrDark(),
       themeMode: ThemeMode.system,
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }
