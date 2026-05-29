@@ -10,6 +10,10 @@ import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/auth_provider.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/listings/jobs_listing_screen.dart';
+import '../features/listings/job_detail_screen.dart';
+import '../features/listings/trainings_listing_screen.dart';
+import '../features/listings/training_detail_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -31,6 +35,18 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/home',
       builder: (_, __) => const HomeScreen(),
+    ),
+
+    // ── Listings ─────────────────────────────────────────────────────────────
+    GoRoute(path: '/jobs',      builder: (_, __) => const JobsListingScreen()),
+    GoRoute(
+      path: '/jobs/:id',
+      builder: (_, s) => JobDetailScreen(jobId: int.parse(s.pathParameters['id']!)),
+    ),
+    GoRoute(path: '/trainings', builder: (_, __) => const TrainingsListingScreen()),
+    GoRoute(
+      path: '/trainings/:id',
+      builder: (_, s) => TrainingDetailScreen(trainingId: int.parse(s.pathParameters['id']!)),
     ),
   ],
 );

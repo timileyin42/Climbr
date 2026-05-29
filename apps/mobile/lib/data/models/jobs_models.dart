@@ -65,6 +65,104 @@ class Job {
   }
 }
 
+// ── Job Detail (extends Job with applicant count + status) ───────────────────
+
+class JobDetail extends Job {
+  final int    applicantCount;
+  final String status;
+  final String? companySize;
+  final String? experienceLevel;
+
+  const JobDetail({
+    required super.id,
+    required super.title,
+    super.description,
+    required super.location,
+    required super.jobType,
+    required super.employerName,
+    super.industry,
+    super.salaryMin,
+    super.salaryMax,
+    super.imageUrl,
+    super.highlights,
+    required super.createdAt,
+    required this.applicantCount,
+    required this.status,
+    this.companySize,
+    this.experienceLevel,
+  });
+
+  factory JobDetail.fromJson(Map<String, dynamic> j) => JobDetail(
+    id:              j['id']              as int,
+    title:           j['title']           as String,
+    description:     j['description']     as String?,
+    location:        j['location']        as String,
+    jobType:         j['job_type']        as String,
+    employerName:    j['employer_name']   as String,
+    industry:        j['industry']        as String?,
+    salaryMin:       (j['salary_min']     as num?)?.toDouble(),
+    salaryMax:       (j['salary_max']     as num?)?.toDouble(),
+    imageUrl:        j['image_url']       as String?,
+    highlights:      j['highlights']      as String?,
+    createdAt:       j['created_at']      as String,
+    applicantCount:  j['applicant_count'] as int?    ?? 0,
+    status:          j['status']          as String? ?? 'active',
+    companySize:     j['company_size']    as String?,
+    experienceLevel: j['experience_level']as String?,
+  );
+}
+
+// ── Training Detail ───────────────────────────────────────────────────────────
+
+class TrainingDetail extends Training {
+  final int     applicantCount;
+  final String? endDate;
+  final String? duration;
+  final String? level;
+  final int?    openSlots;
+  final String? curriculum;
+
+  const TrainingDetail({
+    required super.id,
+    required super.title,
+    super.description,
+    required super.category,
+    super.location,
+    required super.cost,
+    required super.deliveryMethod,
+    required super.trainerName,
+    required super.startDate,
+    super.highlights,
+    required super.createdAt,
+    required this.applicantCount,
+    this.endDate,
+    this.duration,
+    this.level,
+    this.openSlots,
+    this.curriculum,
+  });
+
+  factory TrainingDetail.fromJson(Map<String, dynamic> j) => TrainingDetail(
+    id:             j['id']              as int,
+    title:          j['title']           as String,
+    description:    j['description']     as String?,
+    category:       j['category']        as String,
+    location:       j['location']        as String?,
+    cost:           (j['cost']           as num).toDouble(),
+    deliveryMethod: j['delivery_method'] as String,
+    trainerName:    j['trainer_name']    as String,
+    startDate:      j['start_date']      as String,
+    highlights:     j['highlights']      as String?,
+    createdAt:      j['created_at']      as String,
+    applicantCount: j['applicant_count'] as int?    ?? 0,
+    endDate:        j['end_date']        as String?,
+    duration:       j['duration']        as String?,
+    level:          j['level']           as String?,
+    openSlots:      j['open_slots']      as int?,
+    curriculum:     j['curriculum']      as String?,
+  );
+}
+
 class Training {
   final int     id;
   final String  title;

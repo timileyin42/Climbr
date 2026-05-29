@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../app/theme/typography.dart';
 import '../../app/theme/spacing.dart';
@@ -301,9 +302,9 @@ class _CtaCard extends StatelessWidget {
           const SizedBox(height: Sp.s4),
           Row(
             children: [
-              _CtaBtn(label: 'Find Jobs', icon: Icons.work_outline_rounded),
+              _CtaBtn(label: 'Find Jobs', icon: Icons.work_outline_rounded, onTap: () => context.push('/jobs')),
               const SizedBox(width: Sp.s2),
-              _CtaBtn(label: 'Trainings', icon: Icons.school_outlined, outlined: true),
+              _CtaBtn(label: 'Trainings', icon: Icons.school_outlined, outlined: true, onTap: () => context.push('/trainings')),
             ],
           ),
         ],
@@ -313,31 +314,35 @@ class _CtaCard extends StatelessWidget {
 }
 
 class _CtaBtn extends StatelessWidget {
-  final String label;
+  final String   label;
   final IconData icon;
-  final bool outlined;
-  const _CtaBtn({required this.label, required this.icon, this.outlined = false});
+  final bool     outlined;
+  final VoidCallback? onTap;
+  const _CtaBtn({required this.label, required this.icon, this.outlined = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        height: 42,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Radii.pill),
-          color: outlined ? Colors.transparent : Colors.white,
-          border: outlined ? Border.all(color: Colors.white.withValues(alpha: 0.6)) : null,
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 16, color: outlined ? Colors.white : ClimbrColors.brandOrange),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: ClimbrText.label.copyWith(
-              color: outlined ? Colors.white : ClimbrColors.brandOrange,
-            ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.pill),
+            color: outlined ? Colors.transparent : Colors.white,
+            border: outlined ? Border.all(color: Colors.white.withValues(alpha: 0.6)) : null,
           ),
-        ]),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 16, color: outlined ? Colors.white : ClimbrColors.brandOrange),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: ClimbrText.label.copyWith(
+                color: outlined ? Colors.white : ClimbrColors.brandOrange,
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -351,7 +356,9 @@ class _FeaturedJobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () => context.push('/jobs/${job.id}'),
+      child: Container(
       width: 230,
       padding: const EdgeInsets.all(Sp.s4),
       decoration: BoxDecoration(
@@ -409,6 +416,7 @@ class _FeaturedJobCard extends StatelessWidget {
           ]),
         ],
       ),
-    );
+    ),
+  );
   }
 }
