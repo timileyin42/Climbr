@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { messagesApi, profileViewsApi } from '@/lib/api/endpoints/messages'
+import { messagesApi, notificationsApi, profileViewsApi } from '@/lib/api/endpoints/messages'
 
 export const msgKeys = {
   conversations: ['conversations'] as const,
@@ -51,6 +51,30 @@ export function useUnreadCount() {
     queryKey: msgKeys.unread,
     queryFn:  messagesApi.unreadCount,
     refetchInterval: 15_000,
+  })
+}
+
+export function useNotifications() {
+  return useQuery({
+    queryKey: ['notifications'],
+    queryFn:  () => notificationsApi.list(),
+    refetchInterval: 30_000,
+  })
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => notificationsApi.markRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => notificationsApi.markAllRead(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 }
 

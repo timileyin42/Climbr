@@ -15,6 +15,7 @@ const navConfig: Record<UserRole, { label: string; icon: React.ElementType; to: 
     { label: 'Job Listings',    icon: Briefcase,       to: '/jobs' },
     { label: 'Trainings',       icon: GraduationCap,   to: '/trainings' },
     { label: 'My Applications', icon: FileText,        to: '/applications' },
+    { label: 'Messages',        icon: MessageSquare,   to: '/messages' },
     { label: 'Settings',        icon: Settings,        to: '/settings' },
   ],
   employer: [

@@ -56,6 +56,28 @@ export const messagesApi = {
     api.get('messages/unread-count').json<{ unread: number }>(),
 }
 
+export interface AppNotification {
+  id: number
+  title: string
+  body: string
+  is_read: boolean
+  created_at: string
+  notification_type: string
+}
+
+export const notificationsApi = {
+  list: (page = 1, limit = 20) =>
+    api.get(`talent/notifications?page=${page}&limit=${limit}`).json<{
+      items: AppNotification[]
+      total: number
+      unread_count: number
+    }>(),
+  markRead: (id: number) =>
+    api.post(`talent/notifications/${id}/read`).json<void>(),
+  markAllRead: () =>
+    api.post('talent/notifications/read-all').json<void>(),
+}
+
 export const profileViewsApi = {
   recordView: (userId: number) =>
     api.post(`profile-views/${userId}`).then(() => {}),
