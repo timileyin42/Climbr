@@ -6,6 +6,7 @@ const K = {
   info:       ['employer', 'info']       as const,
   credits:    ['employer', 'credits']    as const,
   jobs:       (s?: string) => ['employer', 'jobs', s] as const,
+  job:        (id: number) => ['employer', 'job', id] as const,
   applicants: (jid: number) => ['employer', 'applicants', jid] as const,
 }
 
@@ -13,6 +14,21 @@ export function useEmployerInfo()    { return useQuery({ queryKey: K.info,    qu
 export function useEmployerCredits() { return useQuery({ queryKey: K.credits, queryFn: employerApi.credits, refetchInterval: false }) }
 export function useEmployerJobs(status?: string) {
   return useQuery({ queryKey: K.jobs(status), queryFn: () => employerApi.jobs(status) })
+}
+export function useEmployerJob(id: number) {
+  return useQuery({ queryKey: K.job(id), queryFn: () => employerApi.job(id), enabled: !!id })
+}
+export function useUpdateJob() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<JobCreate> }) => employerApi.updateJob(id, data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['employer', 'jobs'] })
+      qc.invalidateQueries({ queryKey: K.job(vars.id) })
+      toast.success('Job updated!')
+    },
+    onError: () => toast.error('Failed to update job'),
+  })
 }
 export function useJobApplicants(jobId: number) {
   return useQuery({ queryKey: K.applicants(jobId), queryFn: () => employerApi.applicants(jobId), enabled: !!jobId })

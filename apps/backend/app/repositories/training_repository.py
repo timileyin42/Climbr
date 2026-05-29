@@ -185,10 +185,21 @@ class TrainingRepository(BaseRepository[Training]):
         limit: int = 100,
         status: Optional[TrainingStatus] = None,
     ) -> List[Training]:
-        query = self.db.query(Training).filter(Training.trainer_id == trainer_id)
+        query = (
+            self.db.query(Training, func.count(TrainingApplication.id).label("applicant_count"))
+            .outerjoin(TrainingApplication, TrainingApplication.training_id == Training.id)
+            .filter(Training.trainer_id == trainer_id)
+            .group_by(Training.id)
+        )
         if status:
             query = query.filter(Training.status == status)
-        return query.order_by(desc(Training.created_at)).offset(skip).limit(limit).all()
+        results = query.order_by(desc(Training.created_at)).offset(skip).limit(limit).all()
+        trainings = []
+        for result in results:
+            training = result[0]
+            training.applicant_count = result[1] or 0
+            trainings.append(training)
+        return trainings
 
     def create(
         self, trainer_id: int, skill_ids: Optional[List[int]] = None, **data

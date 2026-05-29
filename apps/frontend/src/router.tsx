@@ -35,6 +35,7 @@ const TalentSettings = lazy(() => import('@/features/talent/settings/Settings').
 // Employer
 const EmployerJobs           = lazy(() => import('@/features/employer/jobs/Jobs').then((m) => ({ default: m.Component })))
 const EmployerPostJob        = lazy(() => import('@/features/employer/jobs/PostJob').then((m) => ({ default: m.Component })))
+const EmployerJobEdit        = lazy(() => import('@/features/employer/jobs/JobEdit').then((m) => ({ default: m.Component })))
 const EmployerJobApplicants  = lazy(() => import('@/features/employer/jobs/JobApplicants').then((m) => ({ default: m.Component })))
 const EmployerApplicants     = lazy(() => import('@/features/employer/applicants/Applicants').then((m) => ({ default: m.Component })))
 const EmployerCredits        = lazy(() => import('@/features/employer/credits/Credits').then((m) => ({ default: m.Component })))
@@ -138,7 +139,7 @@ export const router = createBrowserRouter([
       { path: '/employer/dashboard',              element: <EmployerOnly><EmployerDashboard /></EmployerOnly> },
       { path: '/employer/jobs',                   element: <EmployerOnly><EmployerJobs /></EmployerOnly> },
       { path: '/employer/jobs/new',               element: <EmployerOnly><EmployerPostJob /></EmployerOnly> },
-      { path: '/employer/jobs/:id',               element: <EmployerOnly><Placeholder name="Job Detail (Employer)" /></EmployerOnly> },
+      { path: '/employer/jobs/:id',               element: <EmployerOnly><EmployerJobEdit /></EmployerOnly> },
       { path: '/employer/jobs/:id/applicants',    element: <EmployerOnly><EmployerJobApplicants /></EmployerOnly> },
       { path: '/employer/applicants',             element: <EmployerOnly><EmployerApplicants /></EmployerOnly> },
       { path: '/employer/messages',               element: <EmployerOnly><MessagesPage /></EmployerOnly> },

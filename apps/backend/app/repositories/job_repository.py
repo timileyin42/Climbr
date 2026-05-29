@@ -186,10 +186,21 @@ class JobRepository(BaseRepository[Job]):
         limit: int = 100,
         status: Optional[JobStatus] = None,
     ) -> List[Job]:
-        query = self.db.query(Job).filter(Job.employer_id == employer_id)
+        query = (
+            self.db.query(Job, func.count(JobApplication.id).label("applicant_count"))
+            .outerjoin(JobApplication, JobApplication.job_id == Job.id)
+            .filter(Job.employer_id == employer_id)
+            .group_by(Job.id)
+        )
         if status:
             query = query.filter(Job.status == status)
-        return query.order_by(desc(Job.created_at)).offset(skip).limit(limit).all()
+        results = query.order_by(desc(Job.created_at)).offset(skip).limit(limit).all()
+        jobs = []
+        for result in results:
+            job = result[0]
+            job.applicant_count = result[1] or 0
+            jobs.append(job)
+        return jobs
 
     def create(self, employer_id: int, skill_ids: Optional[List[int]] = None, **data) -> Job:
         job = Job(employer_id=employer_id, **data)
