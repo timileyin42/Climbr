@@ -14,6 +14,7 @@ import '../features/listings/jobs_listing_screen.dart';
 import '../features/listings/job_detail_screen.dart';
 import '../features/listings/trainings_listing_screen.dart';
 import '../features/listings/training_detail_screen.dart';
+import '../features/profile_tab/settings_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -48,6 +49,9 @@ final appRouter = GoRouter(
       path: '/trainings/:id',
       builder: (_, s) => TrainingDetailScreen(trainingId: int.parse(s.pathParameters['id']!)),
     ),
+
+    // ── Profile & Settings ────────────────────────────────────────────────────
+    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
   ],
 );
 
