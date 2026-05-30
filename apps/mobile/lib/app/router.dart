@@ -15,6 +15,7 @@ import '../features/listings/job_detail_screen.dart';
 import '../features/listings/trainings_listing_screen.dart';
 import '../features/listings/training_detail_screen.dart';
 import '../features/profile_tab/settings_screen.dart';
+import '../features/messages_tab/chat_thread_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -52,6 +53,12 @@ final appRouter = GoRouter(
 
     // ── Profile & Settings ────────────────────────────────────────────────────
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+
+    // ── Messages ──────────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/chat/:id',
+      builder: (_, s) => ChatThreadScreen(conversationId: int.parse(s.pathParameters['id']!)),
+    ),
   ],
 );
 
