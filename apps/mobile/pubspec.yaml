@@ -25,8 +25,16 @@ dependencies:
   # Network
   dio: ^5.4.3+1
 
-  # Secure token storage
+  # Storage
   flutter_secure_storage: ^9.2.2
+
+  # Firebase + Google Sign-In
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  google_sign_in: ^6.2.1
+
+  # file_picker + image_picker both pull DKImagePickerController via SPM (broken git rev).
+  # File uploads are wired UI-only for now; add these back when DKImagePickerController 5.x lands.
 
 dev_dependencies:
   flutter_test:

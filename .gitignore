@@ -24,8 +24,12 @@ logs/
 
 # Internal prompt/planning docs
 climbr_prompts*.md
+# Firebase / Google sensitive files
 climbr-4e120-firebase-adminsdk-fbsvc-cbd24ded60.json
 GoogleService-Info.plist
+apps/mobile/ios/Runner/GoogleService-Info.plist
+apps/mobile/lib/app/firebase_options.dart
+google-services.json
 /docs
 phase3_web.md
 node_modules/

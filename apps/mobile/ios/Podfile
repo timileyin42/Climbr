@@ -4,6 +4,10 @@ platform :ios, '14.0'
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# Force CocoaPods for all plugins — disables SPM so Firebase resolves via CocoaPods
+# instead of hitting the 225MB firebase-ios-sdk SPM repo
+ENV['SWIFT_PACKAGE_MANAGER_ENABLED'] = '0'
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,

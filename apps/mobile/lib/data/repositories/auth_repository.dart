@@ -66,6 +66,21 @@ class AuthRepository {
     }
   }
 
+  /// Sends a Firebase ID token to POST /auth/firebase and returns an AuthResponse.
+  Future<AuthResponse> firebaseSignIn(String idToken) async {
+    try {
+      final res = await dio.post('auth/firebase', data: {
+        'id_token':  idToken,
+        'user_type': 'talent',
+      });
+      final auth = AuthResponse.fromJson(res.data as Map<String, dynamic>);
+      await TokenStorage.saveTokens(access: auth.accessToken, role: auth.user.role);
+      return auth;
+    } on DioException catch (e) {
+      throw AuthException(_extractMessage(e));
+    }
+  }
+
   Future<void> logout() async {
     await TokenStorage.clear();
   }

@@ -231,6 +231,11 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
                 ]),
               ),
 
+              const SizedBox(height: Sp.s4),
+
+              // CV / Resume upload
+              _ResumeUploadRow(),
+
               const SizedBox(height: Sp.s5),
 
               SizedBox(
@@ -499,6 +504,40 @@ class _PasswordField extends StatelessWidget {
                 size: 18, color: ClimbrColors.textTertiary),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Resume upload row (file_picker pending DKImagePickerController fix) ───────
+
+class _ResumeUploadRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('CV / Resume', style: ClimbrText.label.copyWith(color: ClimbrColors.textPrimary)),
+        const SizedBox(height: Sp.s2),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: Sp.s4, vertical: 14),
+          decoration: BoxDecoration(
+            color: ClimbrColors.bgSecondary,
+            borderRadius: BorderRadius.circular(Radii.md),
+            border: Border.all(color: ClimbrColors.border),
+          ),
+          child: Row(children: [
+            const Icon(Icons.upload_file_outlined, size: 18, color: ClimbrColors.textTertiary),
+            const SizedBox(width: Sp.s2),
+            Expanded(
+              child: Text(
+                'PDF or DOC upload coming soon',
+                style: ClimbrText.bodyMd.copyWith(color: ClimbrColors.textTertiary),
+              ),
+            ),
+            Text('Upload', style: ClimbrText.label.copyWith(color: ClimbrColors.textTertiary)),
+          ]),
         ),
       ],
     );

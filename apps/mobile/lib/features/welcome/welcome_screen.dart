@@ -1,19 +1,21 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../app/theme/typography.dart';
 import '../../app/theme/spacing.dart';
+import '../auth/auth_provider.dart';
 
-class WelcomeScreen extends StatefulWidget {
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen>
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     with TickerProviderStateMixin {
   late final AnimationController _floatCtrl;
   late final AnimationController _rotateCtrl;
@@ -39,8 +41,22 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+
+    // Navigate on Google sign-in success
+    ref.listen<AuthState>(authProvider, (_, next) {
+      if (next is AuthSuccess) {
+        if (!next.user.isVerified) {
+          context.go('/verify-email');
+        } else if (!next.user.profileComplete) {
+          context.go('/onboarding');
+        } else {
+          context.go('/home');
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: ClimbrColors.brandNavy,
@@ -401,9 +417,9 @@ class _PillarsRow extends StatelessWidget {
 
 // ── CTA buttons ───────────────────────────────────────────────────────────────
 
-class _CTAButtons extends StatelessWidget {
+class _CTAButtons extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
         // Primary — Get started (cyan)
@@ -440,9 +456,7 @@ class _CTAButtons extends StatelessWidget {
           width: double.infinity,
           height: 54,
           child: OutlinedButton(
-            onPressed: () {
-              // Google sign-in handled in auth
-            },
+            onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               shape: const StadiumBorder(),

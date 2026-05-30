@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/models/auth_models.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../core/storage/token_storage.dart';
@@ -71,8 +73,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    state = const AuthLoading();
+    try {
+      // 1. Trigger Google Sign-In flow
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        state = const AuthLoggedOut(); // user cancelled
+        return;
+      }
+
+      // 2. Get Google auth tokens
+      final googleAuth = await googleUser.authentication;
+
+      // 3. Sign into Firebase with Google credential
+      final credential = GoogleAuthProvider.credential(
+        idToken:     googleAuth.idToken,
+        accessToken: googleAuth.accessToken,
+      );
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // 4. Get Firebase ID token
+      final firebaseToken = await userCredential.user?.getIdToken();
+      if (firebaseToken == null) throw AuthException('Could not obtain Firebase token');
+
+      // 5. Send to our backend
+      final auth = await _repo.firebaseSignIn(firebaseToken);
+      state = AuthSuccess(auth.user);
+    } on AuthException catch (e) {
+      state = AuthError(e.message);
+    } catch (e) {
+      state = AuthError(e.toString());
+    }
+  }
+
   Future<void> logout() async {
     await _repo.logout();
+    try { await GoogleSignIn().signOut(); } catch (_) {}
+    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
     state = const AuthLoggedOut();
   }
 
