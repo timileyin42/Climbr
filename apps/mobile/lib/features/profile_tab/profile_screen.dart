@@ -1,19 +1,51 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../app/theme/colors.dart';
 import '../../app/theme/typography.dart';
 import '../../app/theme/spacing.dart';
+import '../../core/network/upload_service.dart';
 import '../../data/models/profile_view_models.dart';
 import '../saved_tab/saved_provider.dart';
 import 'profile_provider.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _uploadingPhoto = false;
+
+  Future<void> _pickAndUploadPhoto() async {
+    final xFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 800,
+    );
+    if (xFile == null || !mounted) return;
+    setState(() => _uploadingPhoto = true);
+    final url = await UploadService.uploadProfileImage(File(xFile.path));
+    if (mounted) {
+      setState(() => _uploadingPhoto = false);
+      if (url != null) {
+        ref.read(profileViewProvider.notifier).fetch();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo updated!'),
+            backgroundColor: ClimbrColors.statusAccepted),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state      = ref.watch(profileViewProvider);
     final notifier   = ref.read(profileViewProvider.notifier);
     final savedJobs  = ref.watch(savedJobsProvider).jobs.length;
@@ -79,37 +111,44 @@ class ProfileScreen extends ConsumerWidget {
                     // Avatar + name
                     Row(
                       children: [
-                        Stack(
-                          children: [
-                            Container(
-                              width: 72, height: 72,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: ClimbrColors.brandCyan,
-                                border: Border.all(color: ClimbrColors.brandCyanSoft, width: 3),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  p.firstName.isNotEmpty ? p.firstName[0].toUpperCase() : '?',
-                                  style: const TextStyle(
-                                    fontFamily: 'Inter', fontSize: 28,
-                                    fontWeight: FontWeight.w800, color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0, right: 0,
-                              child: Container(
-                                width: 24, height: 24,
-                                decoration: const BoxDecoration(
+                        GestureDetector(
+                          onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 72, height: 72,
+                                decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: ClimbrColors.brandNavy,
+                                  color: ClimbrColors.brandCyan,
+                                  border: Border.all(color: ClimbrColors.brandCyanSoft, width: 3),
                                 ),
-                                child: const Icon(Icons.camera_alt_outlined, size: 12, color: Colors.white),
+                                child: _uploadingPhoto
+                                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                    : p.profileImageUrl != null
+                                        ? ClipOval(child: Image.network(p.profileImageUrl!, fit: BoxFit.cover))
+                                        : Center(
+                                            child: Text(
+                                              p.firstName.isNotEmpty ? p.firstName[0].toUpperCase() : '?',
+                                              style: const TextStyle(
+                                                fontFamily: 'Inter', fontSize: 28,
+                                                fontWeight: FontWeight.w800, color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
                               ),
-                            ),
-                          ],
+                              Positioned(
+                                bottom: 0, right: 0,
+                                child: Container(
+                                  width: 24, height: 24,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: ClimbrColors.brandNavy,
+                                  ),
+                                  child: const Icon(Icons.camera_alt_outlined, size: 12, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
 
                         const SizedBox(width: Sp.s4),
@@ -437,26 +476,82 @@ class _EduCard extends StatelessWidget {
   }
 }
 
-class _CertRow extends StatelessWidget {
+class _CertRow extends StatefulWidget {
   final CertEntry    entry;
   final VoidCallback onDelete;
   const _CertRow({required this.entry, required this.onDelete});
 
   @override
+  State<_CertRow> createState() => _CertRowState();
+}
+
+class _CertRowState extends State<_CertRow> {
+  bool    _uploading = false;
+  bool    _uploaded  = false;
+  String? _fileName;
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+    );
+    if (result == null || result.files.isEmpty || result.files.first.path == null) return;
+    final file = result.files.first;
+    setState(() { _uploading = true; _fileName = file.name; });
+    final url = await UploadService.uploadCertificate(widget.entry.id, File(file.path!));
+    if (mounted) setState(() { _uploading = false; _uploaded = url != null; });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: Sp.s3),
-      child: Row(children: [
-        const Icon(Icons.verified_outlined, size: 18, color: ClimbrColors.statusAccepted),
-        const SizedBox(width: Sp.s2),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(entry.name, style: ClimbrText.label.copyWith(color: ClimbrColors.textPrimary)),
-            Text(entry.issuingOrganization, style: ClimbrText.caption.copyWith(color: ClimbrColors.textSecondary)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(
+              _uploaded ? Icons.verified_rounded : Icons.verified_outlined,
+              size: 18,
+              color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.statusAccepted,
+            ),
+            const SizedBox(width: Sp.s2),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(widget.entry.name, style: ClimbrText.label.copyWith(color: ClimbrColors.textPrimary)),
+                Text(widget.entry.issuingOrganization, style: ClimbrText.caption.copyWith(color: ClimbrColors.textSecondary)),
+              ]),
+            ),
+            // Upload file button
+            GestureDetector(
+              onTap: _uploading ? null : _pickFile,
+              child: _uploading
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ClimbrColors.brandCyan))
+                  : Icon(
+                      _uploaded ? Icons.attach_file_rounded : Icons.upload_file_outlined,
+                      size: 18,
+                      color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan,
+                    ),
+            ),
+            const SizedBox(width: Sp.s2),
+            GestureDetector(onTap: widget.onDelete, child: const Icon(Icons.close_rounded, size: 18, color: ClimbrColors.textTertiary)),
           ]),
-        ),
-        GestureDetector(onTap: onDelete, child: const Icon(Icons.close_rounded, size: 18, color: ClimbrColors.textTertiary)),
-      ]),
+          if (_fileName != null) ...[
+            const SizedBox(height: 3),
+            Padding(
+              padding: const EdgeInsets.only(left: 26),
+              child: Text(
+                _uploaded ? '✓ $_fileName' : _fileName!,
+                style: ClimbrText.caption.copyWith(
+                  color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.textTertiary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

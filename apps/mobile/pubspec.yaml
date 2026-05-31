@@ -33,8 +33,10 @@ dependencies:
   firebase_auth: ^5.3.1
   google_sign_in: ^6.2.1
 
-  # file_picker + image_picker both pull DKImagePickerController via SPM (broken git rev).
-  # File uploads are wired UI-only for now; add these back when DKImagePickerController 5.x lands.
+  # SPM is globally disabled (flutter config --no-enable-swift-package-manager)
+  # so these now install via CocoaPods, bypassing the broken DKImagePickerController SPM rev.
+  image_picker: ^1.1.2
+  file_picker: ^8.1.2
 
 dev_dependencies:
   flutter_test:

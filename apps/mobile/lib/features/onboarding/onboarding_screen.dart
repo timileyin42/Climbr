@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../app/theme/typography.dart';
 import '../../app/theme/spacing.dart';
+import '../../core/network/upload_service.dart';
 import 'onboarding_provider.dart';
 
 class OnboardingScreen extends ConsumerWidget {
@@ -356,9 +359,37 @@ class _Step2EducationState extends State<_Step2Education> {
 
 // ── Step 3 — Resume (file picker pending Batch 10) ────────────────────────────
 
-class _Step3Resume extends StatelessWidget {
+class _Step3Resume extends StatefulWidget {
   final OnboardingNotifier notifier;
   const _Step3Resume({required this.notifier, super.key});
+
+  @override
+  State<_Step3Resume> createState() => _Step3ResumeState();
+}
+
+class _Step3ResumeState extends State<_Step3Resume> {
+  String? _fileName;
+  bool    _uploading = false;
+  bool    _uploaded  = false;
+
+  Future<void> _pick() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx'],
+    );
+    if (result == null || result.files.isEmpty || result.files.first.path == null) return;
+    final file = result.files.first;
+    setState(() { _fileName = file.name; _uploading = true; });
+
+    final url = await UploadService.uploadResume(File(file.path!));
+    if (mounted) {
+      setState(() { _uploading = false; _uploaded = url != null; });
+      if (url != null) {
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (mounted) widget.notifier.proceedFromResume();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -372,34 +403,70 @@ class _Step3Resume extends StatelessWidget {
         const SizedBox(height: Sp.s7),
 
         GestureDetector(
-          onTap: notifier.proceedFromResume, // tapping the zone also proceeds
-          child: Container(
+          onTap: _uploading ? null : _pick,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
             width: double.infinity, height: 160,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(Radii.lg),
-              border: Border.all(color: ClimbrColors.border, width: 1.5),
-              color: ClimbrColors.bgPrimary,
+              border: Border.all(
+                color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan,
+                width: 1.5,
+              ),
+              color: _uploaded ? ClimbrColors.statusAcceptedBg : ClimbrColors.bgPrimary,
             ),
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.upload_file_outlined, size: 40, color: ClimbrColors.textTertiary),
+              _uploading
+                  ? const CircularProgressIndicator(color: ClimbrColors.brandCyan, strokeWidth: 3)
+                  : Icon(
+                      _uploaded ? Icons.check_circle_outline : Icons.upload_file_outlined,
+                      size: 40,
+                      color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan,
+                    ),
               const SizedBox(height: Sp.s3),
-              Text('PDF or DOC', style: ClimbrText.bodyMd.copyWith(color: ClimbrColors.textTertiary)),
-              const SizedBox(height: Sp.s2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: Sp.s3, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(Radii.pill),
-                  color: ClimbrColors.brandCyan.withValues(alpha: 0.08),
+              Text(
+                _uploading ? 'Uploading…'
+                    : _uploaded ? 'CV uploaded successfully!'
+                    : 'Tap to pick your CV',
+                style: ClimbrText.bodyMd.copyWith(
+                  color: _uploaded ? ClimbrColors.statusAccepted
+                      : _uploading ? ClimbrColors.textTertiary
+                      : ClimbrColors.textPrimary,
                 ),
-                child: Text('Coming soon — tap here or Skip below', style: ClimbrText.caption.copyWith(color: ClimbrColors.brandCyan)),
               ),
+              if (_fileName != null && !_uploading) ...[
+                const SizedBox(height: Sp.s2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: Sp.s3, vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(Radii.pill),
+                    color: (_uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan)
+                        .withValues(alpha: 0.08),
+                  ),
+                  child: Text(
+                    _fileName!,
+                    style: ClimbrText.caption.copyWith(
+                      color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              if (!_uploaded && !_uploading && _fileName == null) ...[
+                const SizedBox(height: Sp.s2),
+                Text('PDF or DOC, up to 10MB',
+                    style: ClimbrText.caption.copyWith(color: ClimbrColors.textTertiary)),
+              ],
             ]),
           ),
         ),
 
         const Spacer(),
 
-        _PrimaryBtn(label: 'Skip for now, add CV from Settings', onPressed: notifier.proceedFromResume),
+        _PrimaryBtn(
+          label: _uploaded ? 'Continue' : 'Skip for now',
+          onPressed: widget.notifier.proceedFromResume,
+        ),
       ]),
     );
   }

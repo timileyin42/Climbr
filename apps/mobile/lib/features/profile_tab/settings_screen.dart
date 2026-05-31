@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../app/theme/typography.dart';
 import '../../app/theme/spacing.dart';
+import '../../core/network/upload_service.dart';
 import '../auth/auth_provider.dart';
 import 'profile_provider.dart';
 
@@ -512,7 +515,28 @@ class _PasswordField extends StatelessWidget {
 
 // ── Resume upload row (file_picker pending DKImagePickerController fix) ───────
 
-class _ResumeUploadRow extends StatelessWidget {
+class _ResumeUploadRow extends StatefulWidget {
+  @override
+  State<_ResumeUploadRow> createState() => _ResumeUploadRowState();
+}
+
+class _ResumeUploadRowState extends State<_ResumeUploadRow> {
+  String? _fileName;
+  bool    _uploading = false;
+  bool    _uploaded  = false;
+
+  Future<void> _pick() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx'],
+    );
+    if (result == null || result.files.isEmpty || result.files.first.path == null) return;
+    final file = result.files.first;
+    setState(() { _fileName = file.name; _uploading = true; });
+    final url = await UploadService.uploadResume(File(file.path!));
+    if (mounted) setState(() { _uploading = false; _uploaded = url != null; });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -520,24 +544,48 @@ class _ResumeUploadRow extends StatelessWidget {
       children: [
         Text('CV / Resume', style: ClimbrText.label.copyWith(color: ClimbrColors.textPrimary)),
         const SizedBox(height: Sp.s2),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: Sp.s4, vertical: 14),
-          decoration: BoxDecoration(
-            color: ClimbrColors.bgSecondary,
-            borderRadius: BorderRadius.circular(Radii.md),
-            border: Border.all(color: ClimbrColors.border),
-          ),
-          child: Row(children: [
-            const Icon(Icons.upload_file_outlined, size: 18, color: ClimbrColors.textTertiary),
-            const SizedBox(width: Sp.s2),
-            Expanded(
-              child: Text(
-                'PDF or DOC upload coming soon',
-                style: ClimbrText.bodyMd.copyWith(color: ClimbrColors.textTertiary),
+        GestureDetector(
+          onTap: _uploading ? null : _pick,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(horizontal: Sp.s4, vertical: 14),
+            decoration: BoxDecoration(
+              color: _uploaded ? ClimbrColors.statusAcceptedBg : ClimbrColors.bgSecondary,
+              borderRadius: BorderRadius.circular(Radii.md),
+              border: Border.all(
+                color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.border,
               ),
             ),
-            Text('Upload', style: ClimbrText.label.copyWith(color: ClimbrColors.textTertiary)),
-          ]),
+            child: Row(children: [
+              _uploading
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ClimbrColors.brandCyan))
+                  : Icon(
+                      _uploaded ? Icons.check_circle_outline : Icons.upload_file_outlined,
+                      size: 18,
+                      color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan,
+                    ),
+              const SizedBox(width: Sp.s2),
+              Expanded(
+                child: Text(
+                  _uploading ? 'Uploading…'
+                      : _fileName ?? 'Tap to upload your CV (PDF or DOC)',
+                  style: ClimbrText.bodyMd.copyWith(
+                    color: _uploaded ? ClimbrColors.statusAccepted
+                        : _fileName != null ? ClimbrColors.textPrimary
+                        : ClimbrColors.textTertiary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                _uploaded ? 'Replace' : 'Upload',
+                style: ClimbrText.label.copyWith(
+                  color: _uploaded ? ClimbrColors.statusAccepted : ClimbrColors.brandCyan,
+                ),
+              ),
+            ]),
+          ),
         ),
       ],
     );
