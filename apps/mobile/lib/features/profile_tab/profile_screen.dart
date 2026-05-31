@@ -372,7 +372,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ),
-    ).whenComplete(() => ctrl.dispose());
+    ); // controllers are local vars — GC handles cleanup; explicit dispose during sheet animation crashes
   }
 
   // ── Add Work Experience ─────────────────────────────────────────────────────
@@ -422,7 +422,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _SField('Description (optional)', de, 'What did you achieve?', maxLines: 3),
         ]),
       )),
-    ).whenComplete(() { co.dispose(); ro.dispose(); sd.dispose(); ed.dispose(); de.dispose(); });
+    );
   }
 
   // ── Add Education ───────────────────────────────────────────────────────────
@@ -455,7 +455,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ]),
         ]),
       ),
-    ).whenComplete(() { in_.dispose(); de.dispose(); fi.dispose(); sy.dispose(); ey.dispose(); });
+    );
   }
 
   // ── Add Certificate ─────────────────────────────────────────────────────────
@@ -478,7 +478,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _SField('Issuing organisation', is_, 'e.g. Amazon Web Services'),
         ]),
       ),
-    ).whenComplete(() { na.dispose(); is_.dispose(); });
+    );
   }
 
   // ── Add Skills or Hobbies (chips) ───────────────────────────────────────────
@@ -537,7 +537,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text('Type and press Enter, or separate with commas', style: ClimbrText.caption.copyWith(color: ClimbrColors.textTertiary)),
         ]),
       )),
-    ).whenComplete(() => ctrl.dispose());
+    ); // controllers are local vars — GC handles cleanup; explicit dispose during sheet animation crashes
   }
 
   // ── Add Language ────────────────────────────────────────────────────────────
@@ -576,7 +576,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           )).toList()),
         ]),
       )),
-    ).whenComplete(() => na.dispose());
+    );
   }
 }
 
@@ -593,30 +593,34 @@ class _Sheet extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
-        padding: const EdgeInsets.all(Sp.s6),
         decoration: const BoxDecoration(
           color: ClimbrColors.bgPrimary,
           borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.xl2)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 36, height: 4,
-              decoration: BoxDecoration(color: ClimbrColors.border, borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: Sp.s4),
-            Text(title, style: ClimbrText.h3.copyWith(color: ClimbrColors.textPrimary)),
-            const SizedBox(height: Sp.s4),
-            child,
-            const SizedBox(height: Sp.s5),
-            SizedBox(
-              width: double.infinity, height: 50,
-              child: ElevatedButton(
-                onPressed: onSave,
-                child: const Text('Save', style: TextStyle(fontFamily: 'Inter', fontSize: 15, fontWeight: FontWeight.w700)),
+        // SingleChildScrollView prevents the 99k-pixel overflow when keyboard opens
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(Sp.s6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: ClimbrColors.border, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: Sp.s4),
+              Text(title, style: ClimbrText.h3.copyWith(color: ClimbrColors.textPrimary)),
+              const SizedBox(height: Sp.s4),
+              child,
+              const SizedBox(height: Sp.s5),
+              SizedBox(
+                width: double.infinity, height: 50,
+                child: ElevatedButton(
+                  onPressed: onSave,
+                  child: const Text('Save', style: TextStyle(fontFamily: 'Inter', fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: Sp.s3),
+            ],
+          ),
         ),
       ),
     );
