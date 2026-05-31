@@ -50,6 +50,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthSuccess(auth.user);
     } on AuthException catch (e) {
       state = AuthError(e.message);
+    } catch (e) {
+      state = AuthError('Could not connect. Check your internet connection.');
     }
   }
 
@@ -70,6 +72,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthSuccess(auth.user);
     } on AuthException catch (e) {
       state = AuthError(e.message);
+    } catch (e) {
+      state = AuthError('Could not connect. Check your internet connection.');
     }
   }
 

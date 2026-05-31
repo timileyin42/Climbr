@@ -49,7 +49,7 @@ class AuthUser {
     email:           j['email'] as String,
     firstName:       j['first_name'] as String,
     lastName:        j['last_name']  as String,
-    role:            j['user_type']  as String? ?? 'talent',
+    role:            (j['role'] ?? j['user_type']) as String? ?? 'talent',
     isVerified:      j['is_verified'] as bool? ?? false,
     profileComplete: j['profile_complete'] as bool? ?? false,
   );
