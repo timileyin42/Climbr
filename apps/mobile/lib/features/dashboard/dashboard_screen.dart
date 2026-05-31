@@ -7,9 +7,19 @@ import '../../app/theme/typography.dart';
 import '../../app/theme/spacing.dart';
 import '../../data/models/dashboard_models.dart';
 import 'dashboard_provider.dart';
+import 'notifications_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
+
+  void _showNotifications(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NotificationSheet(ref: ref),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,16 +53,48 @@ class DashboardScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      // Notification bell stub
-                      Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: ClimbrColors.bgPrimary,
-                          border: Border.all(color: ClimbrColors.border),
-                        ),
-                        child: const Icon(Icons.notifications_none_rounded, size: 20, color: ClimbrColors.textSecondary),
-                      ),
+                      // Notification bell
+                      Consumer(builder: (context, ref, _) {
+                        final notifState = ref.watch(notificationsProvider);
+                        final unread = notifState.unreadCount;
+                        return GestureDetector(
+                          onTap: () => _showNotifications(context, ref),
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 40, height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: ClimbrColors.bgPrimary,
+                                  border: Border.all(color: unread > 0 ? ClimbrColors.brandCyan : ClimbrColors.border),
+                                ),
+                                child: Icon(
+                                  unread > 0 ? Icons.notifications_rounded : Icons.notifications_none_rounded,
+                                  size: 20,
+                                  color: unread > 0 ? ClimbrColors.brandCyan : ClimbrColors.textSecondary,
+                                ),
+                              ),
+                              if (unread > 0)
+                                Positioned(
+                                  top: 2, right: 2,
+                                  child: Container(
+                                    width: 16, height: 16,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: ClimbrColors.statusRejected,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        unread > 9 ? '9+' : '$unread',
+                                        style: const TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   ),
                   const SizedBox(height: Sp.s5),
@@ -423,5 +465,115 @@ class _FeaturedJobCard extends StatelessWidget {
       ),
     ),
   );
+  }
+}
+
+// ── Notification bottom sheet ─────────────────────────────────────────────────
+
+class _NotificationSheet extends StatelessWidget {
+  final WidgetRef ref;
+  const _NotificationSheet({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final state    = ref.watch(notificationsProvider);
+    final notifier = ref.read(notificationsProvider.notifier);
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.75),
+      decoration: const BoxDecoration(
+        color: ClimbrColors.bgPrimary,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.xl2)),
+      ),
+      child: Column(
+        children: [
+          // Handle + header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Sp.s5, Sp.s4, Sp.s5, 0),
+            child: Column(
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(color: ClimbrColors.border, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: Sp.s4),
+                Row(
+                  children: [
+                    Expanded(child: Text('Notifications', style: ClimbrText.h3.copyWith(color: ClimbrColors.textPrimary))),
+                    if (state.unreadCount > 0)
+                      GestureDetector(
+                        onTap: notifier.markAllRead,
+                        child: Text('Mark all read', style: ClimbrText.label.copyWith(color: ClimbrColors.brandCyan)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: Sp.s3),
+                const Divider(height: 1),
+              ],
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: state.loading
+                ? const Center(child: CircularProgressIndicator(color: ClimbrColors.brandCyan))
+                : state.items.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(Sp.s7),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.notifications_none_rounded, size: 52, color: ClimbrColors.textTertiary),
+                            const SizedBox(height: Sp.s3),
+                            Text('All caught up!', style: ClimbrText.h3.copyWith(color: ClimbrColors.textPrimary)),
+                            const SizedBox(height: Sp.s2),
+                            Text('No notifications right now.', style: ClimbrText.bodyMd.copyWith(color: ClimbrColors.textSecondary)),
+                          ]),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: Sp.s3),
+                        itemCount: state.items.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1, indent: Sp.s5, endIndent: Sp.s5),
+                        itemBuilder: (_, i) {
+                          final n = state.items[i];
+                          return Container(
+                            color: n.isRead ? Colors.transparent : ClimbrColors.brandCyanSoft,
+                            padding: const EdgeInsets.symmetric(horizontal: Sp.s5, vertical: Sp.s4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 8, height: 8,
+                                  margin: const EdgeInsets.only(top: 5, right: Sp.s3),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: n.isRead ? Colors.transparent : ClimbrColors.brandCyan,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text(n.title, style: ClimbrText.label.copyWith(
+                                      color: ClimbrColors.textPrimary,
+                                      fontWeight: n.isRead ? FontWeight.w500 : FontWeight.w700,
+                                    )),
+                                    if (n.body.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(n.body, style: ClimbrText.bodySm.copyWith(color: ClimbrColors.textSecondary)),
+                                    ],
+                                    const SizedBox(height: 4),
+                                    Text(n.timeAgo, style: ClimbrText.caption.copyWith(color: ClimbrColors.textTertiary)),
+                                  ]),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
   }
 }
