@@ -16,8 +16,9 @@ SECRET_KEY = settings.JWT_SECRET_KEY
 ALGORITHM = settings.JWT_ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
-# OAuth2 scheme for token authentication
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+# OAuth2 scheme for Swagger's Authorize button. The app's normal JSON login
+# endpoint remains /auth/login; /auth/token accepts OAuth2 form fields.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -1,9 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../data/models/auth_models.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../core/storage/token_storage.dart';
+
+// Native channel that handles Google Sign-In with UIWindowScene VC lookup
+const _googleSignInChannel = MethodChannel('com.climbr/google_signin');
 
 // ── Repository provider ────────────────────────────────────────────────────────
 final authRepoProvider = Provider<AuthRepository>((ref) => AuthRepository());
@@ -80,33 +84,50 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signInWithGoogle() async {
     state = const AuthLoading();
     try {
-      // 1. Trigger Google Sign-In flow
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
+      // 1. Call native channel - finds the UIWindowScene presenting VC correctly
+      //    (FLTGoogleSignInPlugin crashes because it uses deprecated UIApplication.keyWindow)
+      final googleTokens =
+          await _googleSignInChannel.invokeMethod<dynamic>('signIn');
+      if (googleTokens == null) {
         state = const AuthLoggedOut(); // user cancelled
         return;
       }
 
-      // 2. Get Google auth tokens
-      final googleAuth = await googleUser.authentication;
+      final idToken = switch (googleTokens) {
+        final String token => token,
+        final Map tokens => tokens['idToken'] as String?,
+        _ => null,
+      };
+      final accessToken = googleTokens is Map
+          ? googleTokens['accessToken'] as String?
+          : null;
 
-      // 3. Sign into Firebase with Google credential
+      if (idToken == null || idToken.isEmpty) {
+        throw const AuthException('Google Sign-In returned no ID token');
+      }
+
+      // 2. Exchange Google tokens with Firebase
       final credential = GoogleAuthProvider.credential(
-        idToken:     googleAuth.idToken,
-        accessToken: googleAuth.accessToken,
+        idToken: idToken,
+        accessToken: accessToken,
       );
       final userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
 
-      // 4. Get Firebase ID token
+      // 3. Get Firebase ID token and send to our backend
       final firebaseToken = await userCredential.user?.getIdToken();
       if (firebaseToken == null) throw AuthException('Could not obtain Firebase token');
 
-      // 5. Send to our backend
       final auth = await _repo.firebaseSignIn(firebaseToken);
       state = AuthSuccess(auth.user);
     } on AuthException catch (e) {
       state = AuthError(e.message);
+    } on PlatformException catch (e) {
+      if (e.code == 'SIGN_IN_FAILED' && (e.message ?? '').contains('cancel')) {
+        state = const AuthLoggedOut();
+      } else {
+        state = AuthError(e.message ?? 'Google Sign-In failed');
+      }
     } catch (e) {
       state = AuthError(e.toString());
     }

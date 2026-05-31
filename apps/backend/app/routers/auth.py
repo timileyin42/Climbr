@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status, Body
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
@@ -100,7 +101,20 @@ class RegisterPayload(BaseModel):
 @router.post("/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: LoginPayload, db: Session = Depends(get_db)):
-    user = auth_service.authenticate_user(db, credentials.email, credentials.password)
+    return _login_user(db, credentials.email, credentials.password)
+
+
+@router.post("/token")
+async def swagger_token_login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    """OAuth2 password-flow login used by Swagger UI's Authorize button."""
+    return _login_user(db, form_data.username, form_data.password)
+
+
+def _login_user(db: Session, email: str, password: str) -> dict:
+    user = auth_service.authenticate_user(db, email, password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
