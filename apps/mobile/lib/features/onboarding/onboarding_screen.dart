@@ -371,32 +371,35 @@ class _Step3Resume extends StatelessWidget {
         ),
         const SizedBox(height: Sp.s7),
 
-        Container(
-          width: double.infinity, height: 160,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.lg),
-            border: Border.all(color: ClimbrColors.border, width: 1.5),
-            color: ClimbrColors.bgPrimary,
-          ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.upload_file_outlined, size: 40, color: ClimbrColors.textTertiary),
-            const SizedBox(height: Sp.s3),
-            Text('PDF or DOC', style: ClimbrText.bodyMd.copyWith(color: ClimbrColors.textTertiary)),
-            const SizedBox(height: Sp.s2),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: Sp.s3, vertical: 4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(Radii.pill),
-                color: ClimbrColors.brandCyan.withValues(alpha: 0.08),
-              ),
-              child: Text('Upload from Settings after setup', style: ClimbrText.caption.copyWith(color: ClimbrColors.brandCyan)),
+        GestureDetector(
+          onTap: notifier.proceedFromResume, // tapping the zone also proceeds
+          child: Container(
+            width: double.infinity, height: 160,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.lg),
+              border: Border.all(color: ClimbrColors.border, width: 1.5),
+              color: ClimbrColors.bgPrimary,
             ),
-          ]),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.upload_file_outlined, size: 40, color: ClimbrColors.textTertiary),
+              const SizedBox(height: Sp.s3),
+              Text('PDF or DOC', style: ClimbrText.bodyMd.copyWith(color: ClimbrColors.textTertiary)),
+              const SizedBox(height: Sp.s2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: Sp.s3, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                  color: ClimbrColors.brandCyan.withValues(alpha: 0.08),
+                ),
+                child: Text('Coming soon — tap here or Skip below', style: ClimbrText.caption.copyWith(color: ClimbrColors.brandCyan)),
+              ),
+            ]),
+          ),
         ),
 
         const Spacer(),
 
-        _PrimaryBtn(label: 'Skip for now', onPressed: notifier.proceedFromResume),
+        _PrimaryBtn(label: 'Skip for now, add CV from Settings', onPressed: notifier.proceedFromResume),
       ]),
     );
   }

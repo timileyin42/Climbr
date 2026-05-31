@@ -41,7 +41,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
 
@@ -55,6 +54,18 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         } else {
           context.go('/home');
         }
+      }
+      if (next is AuthError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: ClimbrColors.statusRejected,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        ref.read(authProvider.notifier).clearError();
       }
     });
 
@@ -82,7 +93,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                   Positioned(
                     top: size.height * 0.08 + dy,
                     right: -30,
-                    child: _Orb(
+                    child: const _Orb(
                       size: 140,
                       color: ClimbrColors.brandCyan,
                       opacity: 0.13,
@@ -92,7 +103,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                   Positioned(
                     bottom: size.height * 0.22 - dy,
                     left: -40,
-                    child: _Orb(
+                    child: const _Orb(
                       size: 160,
                       color: ClimbrColors.brandPink,
                       opacity: 0.10,
@@ -102,7 +113,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                   Positioned(
                     top: size.height * 0.38 + dy * 0.5,
                     right: size.width * 0.05,
-                    child: _Orb(
+                    child: const _Orb(
                       size: 60,
                       color: ClimbrColors.brandOrange,
                       opacity: 0.20,
@@ -159,10 +170,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                         ),
                       ),
                     ],
-                  )
-                      .animate()
-                      .fadeIn(duration: 500.ms)
-                      .slideX(begin: -0.1, end: 0, duration: 500.ms, curve: Curves.easeOutCubic),
+                  ).animate().fadeIn(duration: 500.ms).slideX(
+                      begin: -0.1,
+                      end: 0,
+                      duration: 500.ms,
+                      curve: Curves.easeOutCubic),
 
                   const Spacer(flex: 2),
 
@@ -200,10 +212,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                         ),
                       ],
                     ),
-                  )
-                      .animate(delay: 200.ms)
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.15, end: 0, duration: 400.ms, curve: Curves.easeOutCubic),
+                  ).animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(
+                      begin: 0.15,
+                      end: 0,
+                      duration: 400.ms,
+                      curve: Curves.easeOutCubic),
 
                   const SizedBox(height: Sp.s4),
 
@@ -215,10 +228,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                       letterSpacing: -1.5,
                       height: 1.05,
                     ),
-                  )
-                      .animate(delay: 350.ms)
-                      .fadeIn(duration: 500.ms)
-                      .slideY(begin: 0.12, end: 0, duration: 500.ms, curve: Curves.easeOutCubic),
+                  ).animate(delay: 350.ms).fadeIn(duration: 500.ms).slideY(
+                      begin: 0.12,
+                      end: 0,
+                      duration: 500.ms,
+                      curve: Curves.easeOutCubic),
 
                   const SizedBox(height: Sp.s4),
 
@@ -229,10 +243,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                       color: Colors.white.withValues(alpha: 0.55),
                       height: 1.55,
                     ),
-                  )
-                      .animate(delay: 500.ms)
-                      .fadeIn(duration: 500.ms)
-                      .slideY(begin: 0.12, end: 0, duration: 500.ms, curve: Curves.easeOutCubic),
+                  ).animate(delay: 500.ms).fadeIn(duration: 500.ms).slideY(
+                      begin: 0.12,
+                      end: 0,
+                      duration: 500.ms,
+                      curve: Curves.easeOutCubic),
 
                   const Spacer(flex: 3),
 
@@ -240,7 +255,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                   _PillarsRow()
                       .animate(delay: 600.ms)
                       .fadeIn(duration: 500.ms)
-                      .slideY(begin: 0.1, end: 0, duration: 500.ms, curve: Curves.easeOutCubic),
+                      .slideY(
+                          begin: 0.1,
+                          end: 0,
+                          duration: 500.ms,
+                          curve: Curves.easeOutCubic),
 
                   const SizedBox(height: Sp.s7),
 
@@ -248,7 +267,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                   _CTAButtons()
                       .animate(delay: 750.ms)
                       .fadeIn(duration: 500.ms)
-                      .slideY(begin: 0.1, end: 0, duration: 500.ms, curve: Curves.easeOutCubic),
+                      .slideY(
+                          begin: 0.1,
+                          end: 0,
+                          duration: 500.ms,
+                          curve: Curves.easeOutCubic),
 
                   const SizedBox(height: Sp.s5),
 
@@ -276,9 +299,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                         ),
                       ),
                     ),
-                  )
-                      .animate(delay: 850.ms)
-                      .fadeIn(duration: 400.ms),
+                  ).animate(delay: 850.ms).fadeIn(duration: 400.ms),
 
                   const SizedBox(height: Sp.s7),
                 ],
@@ -420,6 +441,8 @@ class _PillarsRow extends StatelessWidget {
 class _CTAButtons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final loading = ref.watch(authProvider) is AuthLoading;
+
     return Column(
       children: [
         // Primary — Get started (cyan)
@@ -456,7 +479,9 @@ class _CTAButtons extends ConsumerWidget {
           width: double.infinity,
           height: 54,
           child: OutlinedButton(
-            onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
+            onPressed: loading
+                ? null
+                : () => ref.read(authProvider.notifier).signInWithGoogle(),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               shape: const StadiumBorder(),
@@ -464,21 +489,30 @@ class _CTAButtons extends ConsumerWidget {
                 color: Colors.white.withValues(alpha: 0.18),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _GoogleLogo(),
-                const SizedBox(width: Sp.s2),
-                const Text(
-                  'Continue with Google',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+            child: loading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _GoogleLogo(),
+                      const SizedBox(width: Sp.s2),
+                      const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ],

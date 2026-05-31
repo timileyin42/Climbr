@@ -97,11 +97,31 @@ class WorkExperienceRequest {
   Map<String, dynamic> toJson() => {
     'company':     company,
     'position':    role,
-    'start_date':  startDate,
-    if (endDate != null) 'end_date': endDate,
-    if (description != null) 'description': description,
+    'start_date':  _toIso(startDate),
+    if (endDate != null && endDate!.isNotEmpty) 'end_date': _toIso(endDate!),
+    if (description != null && description!.isNotEmpty) 'description': description,
     'is_current':  isCurrent,
   };
+
+  /// Converts user-typed dates (MM/YYYY, MM/DD/YYYY, YYYY) → YYYY-MM-DD
+  static String _toIso(String raw) {
+    final s = raw.trim();
+    // Already ISO
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) return s;
+    // MM/YYYY
+    if (RegExp(r'^\d{1,2}/\d{4}$').hasMatch(s)) {
+      final p = s.split('/');
+      return '${p[1]}-${p[0].padLeft(2,'0')}-01';
+    }
+    // MM/DD/YYYY
+    if (RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$').hasMatch(s)) {
+      final p = s.split('/');
+      return '${p[2]}-${p[0].padLeft(2,'0')}-${p[1].padLeft(2,'0')}';
+    }
+    // YYYY only
+    if (RegExp(r'^\d{4}$').hasMatch(s)) return '$s-01-01';
+    return s; // pass through if unknown format — backend will error
+  }
 }
 
 // ── Skill ─────────────────────────────────────────────────────────────────────
@@ -127,5 +147,5 @@ class LanguageRequest {
   final String name;
   final String proficiency;
   const LanguageRequest({required this.name, required this.proficiency});
-  Map<String, dynamic> toJson() => {'language': name, 'proficiency': proficiency};
+  Map<String, dynamic> toJson() => {'name': name, 'proficiency': proficiency};
 }

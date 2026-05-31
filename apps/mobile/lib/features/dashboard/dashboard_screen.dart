@@ -146,7 +146,7 @@ class _StatsGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: Sp.s3, mainAxisSpacing: Sp.s3, childAspectRatio: 1.55,
+        crossAxisCount: 2, crossAxisSpacing: Sp.s3, mainAxisSpacing: Sp.s3, childAspectRatio: 1.4,
       ),
       itemCount: 4,
       itemBuilder: (_, i) => _StatCard(data: cards[i])
@@ -181,18 +181,23 @@ class _StatCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 36, height: 36,
+            width: 32, height: 32,
             decoration: BoxDecoration(shape: BoxShape.circle, color: data.bg),
-            child: Icon(data.icon, size: 18, color: data.color),
+            child: Icon(data.icon, size: 16, color: data.color),
           ),
-          const Spacer(),
-          Text(
-            '${data.value}',
-            style: ClimbrText.displayMd.copyWith(color: ClimbrColors.textPrimary, fontSize: 28, fontWeight: FontWeight.w800),
+          const SizedBox(height: Sp.s2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${data.value}',
+              style: ClimbrText.displayMd.copyWith(color: ClimbrColors.textPrimary, fontSize: 26, fontWeight: FontWeight.w800),
+            ),
           ),
-          Text(data.label, style: ClimbrText.caption.copyWith(color: ClimbrColors.textSecondary)),
+          Text(data.label, style: ClimbrText.caption.copyWith(color: ClimbrColors.textSecondary), overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -208,7 +213,7 @@ class _StatsSkeletons extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, crossAxisSpacing: Sp.s3, mainAxisSpacing: Sp.s3, childAspectRatio: 1.55,
+        crossAxisCount: 2, crossAxisSpacing: Sp.s3, mainAxisSpacing: Sp.s3, childAspectRatio: 1.4,
       ),
       itemCount: 4,
       itemBuilder: (_, __) => Container(
